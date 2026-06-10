@@ -2,640 +2,402 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Sequence Table Refactor — Proposal</title>
-
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css" id="theme" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sequence Table Refactor — Proposal for Review</title>
+  <meta name="description" content="An indirect solution: fix the structure first, raise the odds of solving the white-space bug from ~10% to ~70%, and make every future fix faster, cheaper, and safer." />
 
   <style>
     :root {
       --ink: #0f172a;
+      --body: #334155;
       --muted: #64748b;
       --line: #e2e8f0;
       --brand: #2563eb;
       --brand-dark: #1e3a8a;
       --good: #16a34a;
+      --good-bg: #f0fdf4;
       --warn: #d97706;
+      --warn-bg: #fffbeb;
       --bad: #dc2626;
+      --bg: #ffffff;
       --bg-soft: #f8fafc;
+      --maxw: 820px;
     }
 
-    .reveal {
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
       font-family: -apple-system, "Hiragino Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: var(--ink);
-      font-size: 30px;
-    }
-    .reveal .slides { text-align: left; }
-    .reveal section { line-height: 1.45; }
-
-    .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
-      color: var(--ink);
-      text-transform: none;
-      letter-spacing: -0.01em;
-      font-weight: 800;
-      margin-bottom: 0.4em;
-    }
-    .reveal h1 { font-size: 2.0em; line-height: 1.1; }
-    .reveal h2 { font-size: 1.5em; }
-    .reveal h3 { font-size: 1.15em; }
-
-    .reveal p { margin: 0.4em 0; }
-    .reveal ul, .reveal ol { display: block; margin: 0.3em 0 0.3em 1em; }
-    .reveal li { margin: 0.28em 0; }
-
-    .reveal a { color: var(--brand); }
-    .reveal strong { color: var(--brand-dark); }
-    .reveal em { color: var(--muted); font-style: normal; }
-
-    /* Kicker / eyebrow */
-    .kicker {
-      display: inline-block;
-      font-size: 0.55em;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--brand);
-      background: #eff6ff;
-      border: 1px solid #dbeafe;
-      padding: 0.3em 0.8em;
-      border-radius: 999px;
-      margin-bottom: 0.6em;
+      color: var(--body);
+      background: var(--bg);
+      line-height: 1.7;
+      font-size: 17px;
+      -webkit-font-smoothing: antialiased;
     }
 
-    .lead { font-size: 1.05em; color: var(--muted); }
+    /* Sticky top bar */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+    }
+    .topbar-inner {
+      max-width: var(--maxw); margin: 0 auto; padding: 0.7rem 1.25rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    }
+    .topbar .brand { font-weight: 800; color: var(--ink); font-size: 0.95rem; letter-spacing: -0.01em; }
+    .topbar .brand span { color: var(--brand); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4em;
+      background: var(--brand); color: #fff; text-decoration: none;
+      font-weight: 700; font-size: 0.82rem; padding: 0.5em 1em; border-radius: 999px;
+      white-space: nowrap; transition: background .15s;
+    }
+    .btn:hover { background: var(--brand-dark); }
+    .btn.ghost { background: transparent; color: var(--brand); border: 1px solid #dbeafe; }
+    .btn.ghost:hover { background: #eff6ff; }
 
-    /* Section divider slides */
-    section.divider {
-      background: linear-gradient(135deg, var(--brand-dark), var(--brand));
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #3b82f6 100%);
+      color: #fff; padding: 3.5rem 1.25rem 3rem;
     }
-    section.divider, section.divider h1, section.divider h2, section.divider h3,
-    section.divider p, section.divider .kicker, section.divider strong {
-      color: #fff;
+    .hero-inner { max-width: var(--maxw); margin: 0 auto; }
+    .eyebrow {
+      display: inline-block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em;
+      text-transform: uppercase; color: #fff; background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.3); padding: 0.35em 0.9em; border-radius: 999px;
+      margin-bottom: 1rem;
     }
-    section.divider .kicker {
-      background: rgba(255,255,255,0.16);
-      border-color: rgba(255,255,255,0.3);
-      color: #fff;
-    }
-    section.divider .num {
-      font-size: 5em;
-      font-weight: 800;
-      opacity: 0.25;
-      line-height: 1;
-      margin-bottom: 0.1em;
-    }
+    .hero h1 { font-size: 2.5rem; line-height: 1.1; margin: 0 0 0.5rem; color: #fff; letter-spacing: -0.02em; font-weight: 800; }
+    .hero .sub { font-size: 1.15rem; color: #dbeafe; margin: 0 0 1.5rem; }
+    .hero .sub em { color: #fff; font-style: normal; font-weight: 700; }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; font-size: 0.82rem; color: #bfdbfe; }
+    .hero-meta span { white-space: nowrap; }
 
-    /* Cards / grid */
-    .grid { display: grid; gap: 0.7em; }
-    .grid.cols-2 { grid-template-columns: 1fr 1fr; }
-    .grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
-
-    .card {
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 0.8em 0.95em;
-      box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    /* Layout */
+    main { max-width: var(--maxw); margin: 0 auto; padding: 0 1.25rem; }
+    section { padding: 2.5rem 0; border-bottom: 1px solid var(--line); }
+    section:last-of-type { border-bottom: none; }
+    h2 {
+      font-size: 1.6rem; color: var(--ink); margin: 0 0 0.4rem; letter-spacing: -0.01em;
+      font-weight: 800; line-height: 1.2;
     }
-    .card h3 { margin: 0 0 0.25em; font-size: 0.92em; }
-    .card p { margin: 0; font-size: 0.78em; color: var(--muted); }
-    .card .big { font-size: 1.9em; font-weight: 800; color: var(--brand); display: block; line-height: 1; margin-bottom: 0.15em; }
+    h2 .kick { display: block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--brand); margin-bottom: 0.4rem; }
+    h3 { font-size: 1.1rem; color: var(--ink); margin: 1.5rem 0 0.3rem; font-weight: 700; }
+    p { margin: 0.7rem 0; }
+    strong { color: var(--brand-dark); }
+    a { color: var(--brand); }
 
+    .lead { font-size: 1.18rem; color: var(--ink); line-height: 1.6; }
+
+    ul { margin: 0.7rem 0; padding-left: 1.3rem; }
+    li { margin: 0.4rem 0; }
+
+    /* Highlight callout */
+    .callout {
+      background: var(--bg-soft); border: 1px solid var(--line); border-left: 5px solid var(--brand);
+      border-radius: 12px; padding: 1rem 1.25rem; margin: 1.25rem 0; font-size: 0.98rem;
+    }
+    .callout.good { border-left-color: var(--good); background: var(--good-bg); }
+    .callout.warn { border-left-color: var(--warn); background: var(--warn-bg); }
+
+    /* Stat row */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.5rem 0; }
+    .stat { background: var(--bg-soft); border: 1px solid var(--line); border-radius: 12px; padding: 1.1rem; text-align: center; }
+    .stat .n { font-size: 1.9rem; font-weight: 800; color: var(--brand); line-height: 1; }
+    .stat .l { font-size: 0.78rem; color: var(--muted); margin-top: 0.4rem; line-height: 1.35; }
+
+    /* Cards */
+    .cards { display: grid; gap: 1rem; margin: 1.25rem 0; }
+    .cards.two { grid-template-columns: 1fr 1fr; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 1.1rem 1.25rem; }
     .card.good { border-left: 5px solid var(--good); }
-    .card.warn { border-left: 5px solid var(--warn); }
-    .card.bad  { border-left: 5px solid var(--bad); }
     .card.brand { border-left: 5px solid var(--brand); }
+    .card.warn { border-left: 5px solid var(--warn); }
+    .card h4 { margin: 0 0 0.4rem; font-size: 1rem; color: var(--ink); font-weight: 700; }
+    .card p { margin: 0; font-size: 0.92rem; color: var(--body); }
+
+    /* Q&A */
+    .qa { margin: 1.25rem 0; }
+    .qa details {
+      border: 1px solid var(--line); border-radius: 12px; padding: 0 1.1rem; margin: 0.6rem 0;
+      background: #fff; transition: border-color .15s;
+    }
+    .qa details[open] { border-color: #bfdbfe; }
+    .qa summary {
+      cursor: pointer; font-weight: 700; color: var(--ink); padding: 0.95rem 0; list-style: none;
+      display: flex; justify-content: space-between; align-items: center; gap: 1rem; font-size: 1rem;
+    }
+    .qa summary::-webkit-details-marker { display: none; }
+    .qa summary::after { content: "+"; color: var(--brand); font-weight: 800; font-size: 1.3rem; }
+    .qa details[open] summary::after { content: "–"; }
+    .qa details > p { margin: 0 0 1rem; font-size: 0.96rem; }
 
     /* Tables */
-    .reveal table { font-size: 0.7em; border-collapse: collapse; width: 100%; margin: 0.3em 0; }
-    .reveal table th {
-      background: var(--bg-soft);
-      color: var(--ink);
-      text-align: left;
-      font-weight: 700;
-      border-bottom: 2px solid var(--line);
-      padding: 0.5em 0.7em;
+    .table-wrap { overflow-x: auto; margin: 1.25rem 0; }
+    table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+    th { background: var(--bg-soft); text-align: left; font-weight: 700; color: var(--ink); border-bottom: 2px solid var(--line); padding: 0.7rem 0.85rem; }
+    td { border-bottom: 1px solid var(--line); padding: 0.7rem 0.85rem; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .pill { display: inline-block; font-size: 0.82em; font-weight: 700; padding: 0.12em 0.6em; border-radius: 999px; }
+    .pill.good { background: #dcfce7; color: #166534; }
+    .pill.warn { background: #fef3c7; color: #92400e; }
+    .pill.bad { background: #fee2e2; color: #991b1b; }
+
+    /* Timeline */
+    .timeline { margin: 1.25rem 0; }
+    .tl-item { display: grid; grid-template-columns: 64px 1fr; gap: 1rem; padding: 0.9rem 0; border-bottom: 1px solid var(--line); }
+    .tl-item:last-child { border-bottom: none; }
+    .tl-week { font-weight: 800; color: var(--brand); font-size: 0.95rem; }
+    .tl-item .body strong { display: block; color: var(--ink); margin-bottom: 0.15rem; }
+    .tl-item .body span { font-size: 0.92rem; color: var(--body); }
+    .tl-item.highlight { background: var(--good-bg); border-radius: 10px; padding-left: 0.75rem; padding-right: 0.75rem; }
+
+    /* Final CTA */
+    .final { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: #fff; border-radius: 18px; padding: 2.25rem; margin: 2.5rem 0 1rem; text-align: center; }
+    .final h2 { color: #fff; }
+    .final p { color: #dbeafe; }
+    .final .btn { background: #fff; color: var(--brand-dark); margin-top: 1rem; }
+    .final .btn:hover { background: #eff6ff; }
+
+    footer { max-width: var(--maxw); margin: 0 auto; padding: 2rem 1.25rem 3rem; color: var(--muted); font-size: 0.85rem; text-align: center; }
+    footer a { color: var(--brand); }
+
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 1.9rem; }
+      .stats { grid-template-columns: 1fr; }
+      .cards.two { grid-template-columns: 1fr; }
+      body { font-size: 16px; }
     }
-    .reveal table td { border-bottom: 1px solid var(--line); padding: 0.5em 0.7em; vertical-align: top; }
-    .reveal table tr:last-child td { border-bottom: none; }
-
-    .pill { display:inline-block; font-size: 0.85em; font-weight: 700; padding: 0.12em 0.55em; border-radius: 999px; }
-    .pill.good { background:#dcfce7; color:#166534; }
-    .pill.warn { background:#fef3c7; color:#92400e; }
-    .pill.bad  { background:#fee2e2; color:#991b1b; }
-
-    .footnote { position: absolute; bottom: 12px; left: 0; right: 0; font-size: 0.5em; color: var(--muted); text-align: center; }
-
-    .stat-row { display:flex; gap: 1.2em; flex-wrap: wrap; margin-top: 0.5em; }
-    .stat { flex: 1; min-width: 130px; }
-    .stat .n { font-size: 2.0em; font-weight: 800; color: var(--brand); line-height: 1; }
-    .stat .l { font-size: 0.66em; color: var(--muted); margin-top: 0.25em; }
-
-    .vs-arrow { text-align:center; font-size: 1.4em; color: var(--muted); align-self:center; }
-
-    .callout {
-      background: var(--bg-soft);
-      border: 1px solid var(--line);
-      border-left: 5px solid var(--brand);
-      border-radius: 10px;
-      padding: 0.7em 1em;
-      font-size: 0.85em;
-    }
-    .callout.good { border-left-color: var(--good); }
-    .callout.warn { border-left-color: var(--warn); }
-
-    .meta-bar { font-size: 0.62em; color: var(--muted); margin-top: 1.2em; }
-    .meta-bar span { margin-right: 1.2em; }
-
-    .reveal .slide-number { font-size: 0.55em; background: transparent; color: var(--muted); }
-    .reveal .progress { color: var(--brand); height: 4px; }
-
-    .small { font-size: 0.78em; }
-    .tiny { font-size: 0.62em; color: var(--muted); }
-    .center { text-align: center; }
-    .mt { margin-top: 0.6em; }
   </style>
 </head>
 <body>
-<div class="reveal">
-  <div class="slides">
 
-    <!-- 1. TITLE -->
-    <section data-background-gradient="linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #3b82f6 100%)">
-      <span class="kicker" style="background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3);color:#fff;">📐 Engineering Proposal</span>
-      <h1 style="color:#fff;">Sequence Table Refactor</h1>
-      <h3 style="color:#dbeafe;font-weight:600;">An <em style="color:#fff;font-weight:700;">indirect</em> solution — fix the structure, not just the symptom</h3>
-      <div class="meta-bar" style="color:#bfdbfe;">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">📐 Sequence Table <span>Refactor</span></div>
+      <span style="font-size:0.8rem;color:var(--muted);font-weight:600;">Proposal for review · 2026-06-08</span>
+    </div>
+  </div>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <span class="eyebrow">📐 Engineering Proposal · For your review</span>
+      <h1>Fix the structure, solve the bug.</h1>
+      <p class="sub">An <em>indirect solution</em> — by fixing the underlying code first, we raise our odds of solving the white-space issue and make every future fix faster, cheaper, and safer.</p>
+      <div class="hero-meta">
         <span>📅 Created 2026-06-08</span>
-        <span>👥 Product Owner / Business stakeholder</span>
-        <span>⏱ ~6 wks manual · ~4 wks with AI</span>
-        <span>🏷 Refactor, not a feature</span>
+        <span>⏱ ~6 weeks manual · ~4 weeks with AI</span>
+        <span>🔄 Rollback by a single switch</span>
       </div>
-      <p style="color:#bfdbfe;font-size:.6em;margin-top:1.4em;">Press <strong style="color:#fff;">→</strong> / Space to advance · <strong style="color:#fff;">Esc</strong> for overview · <strong style="color:#fff;">F</strong> for fullscreen</p>
-      <aside class="notes">
-        Selamat pagi/siang, terima kasih sudah meluangkan waktu. Hari ini saya ingin mengusulkan sebuah investasi teknis untuk tabel sequence kita. Kabar baiknya: dengan membenahi struktur kode lebih dulu, kita bisa menaikkan peluang menyelesaikan bug ini secara signifikan, dan mempercepat semua perbaikan ke depan. Fokusnya adalah memperbaiki STRUKTUR, bukan sekadar menambal gejalanya. Saya akan jelaskan kenapa pendekatan ini justru yang paling masuk akal secara bisnis.
-      </aside>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- SUMMARY -->
+    <section id="summary">
+      <h2><span class="kick">In one minute</span>The opportunity</h2>
+      <p class="lead">Today, fixing a bug in the sequence table is slow and risky because all the code lives tangled in one giant file. By reorganizing it first, we make the white-space bug — and every bug like it — far more likely to fix on the first try.</p>
+      <div class="stats">
+        <div class="stat"><div class="n">~10% → ~70%</div><div class="l">First-attempt fix rate, after the refactor</div></div>
+        <div class="stat"><div class="n">~4–6 wks</div><div class="l">One-time investment (AI-assisted / manual)</div></div>
+        <div class="stat"><div class="n">1 switch</div><div class="l">Instant rollback — no emergency deploy</div></div>
+      </div>
+      <div class="callout good">
+        <strong>The honest target:</strong> this work doesn't ship a flashy new feature, and it isn't a same-day patch. What it does is turn a problem we've struggled with <strong>23 times</strong> into a small, high-confidence follow-up — and pay for itself within about three months of normal work.
+      </div>
     </section>
 
-    <!-- 2. TL;DR -->
-    <section>
-      <span class="kicker">§1 · TL;DR</span>
-      <h2>We can sharply raise our odds of solving the bug.</h2>
-      <div class="grid cols-2">
-        <div class="card brand">
-          <h3>🎯 The honest target</h3>
-          <p>Fix the structure first, and the first-attempt fix rate on white-space, layout, and loading glitches climbs from <strong>~10% to ~70%</strong>. The bug becomes a small, high-confidence follow-up.</p>
-        </div>
-        <div class="card good">
-          <h3>✅ How we get there</h3>
-          <p>An <strong>indirect solution</strong>: restructure the underlying code so <strong>every future fix lands faster, cheaper, and safer</strong>. 23 attempts taught us the structure is the obstacle.</p>
-        </div>
+    <!-- FOUR QUESTIONS -->
+    <section id="questions">
+      <h2><span class="kick">Straight answers</span>The four questions you're likely asking</h2>
+      <div class="qa">
+        <details open>
+          <summary>Will this actually solve the bug — and how long will it take?</summary>
+          <p><strong>Yes — and the surest path is to fix the structure first.</strong> The refactor (~6 weeks manual, ~4 weeks with AI) sets up the white-space fix as a small, isolated follow-up in Week 7 — about 1.5 days of work with ~70% odds of fixing it on the first attempt, versus ~10% today. If your priority is instead a guaranteed same-day patch, that's a valid goal — we can choose that plan together. This one optimizes for the durable win.</p>
+        </details>
+        <details>
+          <summary>What's actually causing the white-space issue?</summary>
+          <p>It comes down to a <strong>bounded set of six likely suspects</strong> — things like the list rendering lagging behind a fast scroll, or images decoding a beat too late. Today these are tangled together in one file, so no one can isolate which one fires. After the refactor, each suspect lives in its own small file and can be tested — and fixed — on its own. (Full list further down.)</p>
+        </details>
+        <details>
+          <summary>Can other development keep moving while this happens?</summary>
+          <p><strong>Mostly, yes.</strong> Everything outside the sequence-table view keeps going — about 70% of normal frontend output and 100% of backend work continue. The only work we pause is new features <em>inside</em> this specific view, which we queue to Week 7 so they land on the clean foundation instead of needing rework.</p>
+        </details>
+        <details>
+          <summary>We use AI — how much faster does that make it?</summary>
+          <p>AI compresses the <strong>reading and building</strong> phases significantly — roughly <strong>6 weeks down to 4</strong>. The validation phases (quality testing, the production safety period) are bound by the calendar, not typing speed, so they stay the same. Importantly, the 4-week figure assumes the <strong>same testing rigor</strong> as the 6-week plan — AI speeds up writing the code, it doesn't lower the bar for checking it.</p>
+        </details>
       </div>
-      <div class="stat-row mt">
-        <div class="stat"><div class="n">~4–6 wks</div><div class="l">AI-assisted / manual</div></div>
-        <div class="stat"><div class="n">1 flip</div><div class="l">Rollback — zero redeploy</div></div>
-        <div class="stat"><div class="n">~23×</div><div class="l">Symptom patched, failed</div></div>
-      </div>
-      <aside class="notes">
-        Intinya begini. Dengan membenahi struktur kode lebih dulu, kita bisa menaikkan peluang berhasil menyelesaikan bug white-space — dari sekitar 10 persen menjadi sekitar 70 persen pada percobaan pertama. 23 percobaan sebelumnya justru mengajarkan kita satu hal penting: yang jadi penghalang adalah strukturnya. Jadi yang saya tawarkan adalah SOLUSI TIDAK LANGSUNG: kita rapikan dulu kodenya, supaya setiap perbaikan ke depan jadi lebih cepat, lebih murah, dan lebih aman. Biayanya sekitar 4 sampai 6 minggu, dan kalau ada apa-apa, kita bisa kembalikan hanya dengan satu saklar — tanpa deploy darurat.
-      </aside>
     </section>
 
-    <!-- 2b. REVIEWER'S FOUR QUESTIONS -->
-    <section>
-      <div class="grid cols-2 small">
-        <div class="card brand">
-          <h3>Q1 · Will it solve the issue? How long?</h3>
-          <p><strong>Yes</strong> — via the surest path. Fixing the structure first turns the fix into a <strong>Week-7 follow-up</strong>: ~1.5 days, ~70% first-attempt success (vs. ~10% today).</p>
-        </div>
-        <div class="card brand">
-          <h3>Q2 · What are the possible causes?</h3>
-          <p>A <strong>bounded set of 6 suspects</strong> (next slide). Today they're tangled in one file; after refactor each is testable alone.</p>
-        </div>
-        <div class="card brand">
-          <h3>Q3 · Refactor + dev in parallel?</h3>
-          <p><strong>Yes</strong> outside this view (~70% FE, ~100% BE). <strong>No</strong> for new work inside it — queued to Week 7.</p>
-        </div>
-        <div class="card brand">
-          <h3>Q4 · I use AI — how much faster?</h3>
-          <p>Build/read phases compress; QA &amp; soak don't. Net <strong>~6 wks → ~4 wks</strong>.</p>
-        </div>
+    <!-- PROBLEM -->
+    <section id="problem">
+      <h2><span class="kick">Where we are today</span>One file, 4,778 lines, everything tangled</h2>
+      <p>The sequence table — plus eleven unrelated parts of the app — all live in a single 4,778-line file. Because everything is mixed together, every change is slow and risky. Each number below is a lever this refactor directly removes:</p>
+      <div class="stats">
+        <div class="stat"><div class="n">~5 days</div><div class="l">Average time to fix one bug here</div></div>
+        <div class="stat"><div class="n">1 in 4</div><div class="l">Fixes that break something else</div></div>
+        <div class="stat"><div class="n">4–6 wks</div><div class="l">Before a new developer can help here</div></div>
       </div>
-      <aside class="notes">
-        Sebelum masuk detail, saya ingin langsung menjawab empat pertanyaan yang muncul saat review. Pertama, apakah bug-nya selesai? Ya — lewat jalur paling andal: kita benahi strukturnya dulu, lalu bug-nya ditutup cepat di Minggu ke-7, kira-kira satu setengah hari, dengan peluang berhasil sekali coba 70 persen — naik dari 10 persen hari ini. Kedua, apa penyebabnya? Ada enam kemungkinan, saya tunjukkan sebentar lagi. Ketiga, apakah bisa jalan paralel dengan development lain? Bisa, untuk area di luar tabel ini. Keempat, kalau pakai AI berapa cepat? Dari 6 minggu bisa jadi sekitar 4 minggu.
-      </aside>
+      <p>The same problem has been worked <strong>23 times</strong> — and each attempt has narrowed it down to one conclusion: the obstacle is the structure of the code, not the effort or skill of the team. Untangling this one file speeds up <strong>every roadmap item</strong> that goes near this part of the app.</p>
     </section>
 
-    <!-- 3. DIVIDER: Problem -->
-    <section class="divider" data-background-gradient="linear-gradient(135deg, #1e3a8a, #2563eb)">
-      <div class="num">02</div>
-      <span class="kicker">The problem today</span>
-      <h1>One file. 4,778 lines.<br/>Everything tangled together.</h1>
-      <aside class="notes">
-        Sekarang mari kita lihat akar masalahnya. Semua bermula dari satu hal: satu file berisi 4.778 baris, di mana segalanya bercampur jadi satu. Inilah sumber dari hampir semua kesulitan yang akan saya jelaskan.
-      </aside>
+    <!-- PROPOSAL -->
+    <section id="proposal">
+      <h2><span class="kick">What we propose</span>Split it into 5–6 small, focused files</h2>
+      <p><strong>Refactoring</strong> means rewriting code <strong>without changing what the user sees</strong> — making it easier for the next person to understand and safely modify. We split the same 4,778 lines so each file does one clear job:</p>
+      <div class="cards two">
+        <div class="card brand"><h4>🧱 Layout</h4><p>Column widths, padding, alignment — where the "white space" gets fixed by design.</p></div>
+        <div class="card brand"><h4>📜 Scrolling</h4><p>How the long list moves and remembers its place.</p></div>
+        <div class="card brand"><h4>⏳ Loading</h4><p>When to show or hide the loading overlay.</p></div>
+        <div class="card brand"><h4>🃏 Cards</h4><p>How each card displays inside a cell.</p></div>
+        <div class="card brand"><h4>🗂 Grouping &amp; rarities</h4><p>Expand / collapse, rarity badges.</p></div>
+        <div class="card brand"><h4>📌 Sticky elements</h4><p>Row numbers, back-to-top buttons.</p></div>
+      </div>
+      <div class="callout good">
+        🔄 The new version is built <strong>beside</strong> the old one, behind a switch. When it's ready, we flip the switch. If anything looks off, we flip it back — <strong>instantly, with no emergency deploy</strong>.
+      </div>
     </section>
 
-    <!-- 4. The problem -->
-    <section>
-      <span class="kicker">§2 · The problem today</span>
-      <h2>The sequence table + 11 unrelated parts live in one file</h2>
-      <div class="grid cols-2">
-        <div class="card warn"><span class="big">~5 days</span><p>Average time per bug fix in this area</p></div>
-        <div class="card bad"><span class="big">1 in 4</span><p>Fixes break something else</p></div>
-        <div class="card bad"><span class="big">23×</span><p>Same problem "fixed" without success</p></div>
-        <div class="card warn"><span class="big">4–6 wks</span><p>Onboarding before a new dev can contribute here</p></div>
+    <!-- PAYOFF -->
+    <section id="payoff">
+      <h2><span class="kick">Why it's worth it</span>Three concrete payoffs</h2>
+      <div class="cards">
+        <div class="card good"><h4>1 · Organized, not gigantic</h4><p>A developer understands one ~300-line file in about 30 minutes — versus ~12 hours of reading the giant file today.</p></div>
+        <div class="card good"><h4>2 · Faster to find the cause</h4><p>A "white space" report goes straight to the Layout file. First-attempt fix rate rises from roughly 10% to roughly 70%.</p></div>
+        <div class="card good"><h4>3 · Easier to extend &amp; debug</h4><p>Change one file, leave the rest untouched. Each file has its own small tests, so we catch breakage before users do.</p></div>
       </div>
-      <div class="callout warn mt">
-        This isn't just a developer inconvenience — it slows down <strong>every roadmap item</strong> that goes near this part of the app. Any change requires a full manual QA sweep because nothing is isolated.
+      <h3>What it means in practice — three months on</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Today</th><th>After refactor</th></tr></thead>
+          <tbody>
+            <tr><td>Bug fix takes ~5 days; breaks something ~1 in 4</td><td><span class="pill good">~1.5 days</span> · breaks ~1 in 20</td></tr>
+            <tr><td>New feature: ~2 weeks + ~1 week of follow-up fixes</td><td><span class="pill good">~1 week</span> + ~2 days follow-up</td></tr>
+            <tr><td>New developer: 4–6 weeks to contribute</td><td><span class="pill good">1–2 weeks</span></td></tr>
+            <tr><td>Testing any change: full manual sweep, ~1 day</td><td><span class="pill good">~2 hours</span>, targeted to the affected file</td></tr>
+          </tbody>
+        </table>
       </div>
-      <aside class="notes">
-        Tabel sequence kita, ditambah sebelas bagian aplikasi lain yang tidak berhubungan, semuanya menumpuk di satu file itu. Akibatnya nyata: satu perbaikan bug rata-rata makan waktu 5 hari, dan satu dari empat kali malah merusak hal lain. Masalah yang sama sudah diperbaiki 23 kali tanpa hasil. Developer baru butuh 4 sampai 6 minggu sebelum berani menyentuh area ini. Jadi ini bukan sekadar keluhan developer — ini memperlambat setiap rencana produk yang lewat dekat sini.
-      </aside>
+      <div class="callout">💡 These savings <strong>compound</strong>. Within about three months of normal work, the team has saved more time than the refactor cost.</div>
     </section>
 
-    <!-- 5. DIVIDER: Proposal -->
-    <section class="divider" data-background-gradient="linear-gradient(135deg, #1e3a8a, #2563eb)">
-      <div class="num">03</div>
-      <span class="kicker">What we propose</span>
-      <h1>Split 4,778 lines into<br/>5–6 small, focused files.</h1>
-      <p style="font-size:.8em;color:#dbeafe;">Refactor = rewriting code <strong style="color:#fff;">without changing what the user sees</strong>.</p>
-      <aside class="notes">
-        Jadi apa usulan kami? Sederhana: kita pecah 4.778 baris itu menjadi 5 sampai 6 file kecil. Dan saya tegaskan definisi refactor di sini — menulis ulang kode TANPA mengubah apa pun yang dilihat user. Tampilannya sama persis, yang berubah hanya kerapian di dalam.
-      </aside>
+    <!-- CAUSES -->
+    <section id="causes">
+      <h2><span class="kick">The six suspects</span>What's likely causing the white space</h2>
+      <p>These are <strong>hypotheses to confirm</strong> in the first week — not yet proven. Listing them makes two things clear: the problem has a <em>bounded</em> set of likely causes, and the refactor is what finally lets us test each one in isolation.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Likely cause</th><th>Why it looks like white space</th><th>Fixed in</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><strong>Rendering lags fast scroll</strong></td><td>The list scrolls faster than rows can appear — a blank gap until it catches up</td><td>Scrolling</td></tr>
+            <tr><td>2</td><td><strong>Wrong row heights</strong></td><td>Estimated heights don't match reality, so gaps open between rows</td><td>Layout</td></tr>
+            <tr><td>3</td><td><strong>Images decode late</strong></td><td>Cells paint before images finish decoding, flashing empty</td><td>Cards + Loading</td></tr>
+            <tr><td>4</td><td><strong>Overlay hides too early</strong></td><td>The loading cover lifts before rows are painted</td><td>Loading</td></tr>
+            <tr><td>5</td><td><strong>Scroll position jump</strong></td><td>Position restores before the layout settles — a brief blank</td><td>Scrolling</td></tr>
+            <tr><td>6</td><td><strong>Sticky offset miscalc</strong></td><td>Row-number column throws the geometry off by a few pixels</td><td>Sticky elements</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout warn">⚠️ The likeliest culprits (#1, #2, #5) all live in <strong>scrolling + layout</strong> — today interleaved with everything else. A fix for one routinely triggers a regression that looks like another. Isolating them is exactly what makes this attempt different from the previous 23.</div>
     </section>
 
-    <!-- 6. The split -->
-    <section>
-      <span class="kicker">§3 · What we propose — refactor</span>
-      <h2>One job per file</h2>
-      <div class="grid cols-3">
-        <div class="card brand"><h3>🧱 Layout</h3><p>Column widths, padding, alignment — where "white space" gets fixed by design</p></div>
-        <div class="card brand"><h3>📜 Scrolling</h3><p>How the long list moves and remembers its place</p></div>
-        <div class="card brand"><h3>⏳ Loading</h3><p>When to show or hide the loading overlay</p></div>
-        <div class="card brand"><h3>🃏 Cards</h3><p>How each card displays inside a cell</p></div>
-        <div class="card brand"><h3>🗂 Grouping & rarities</h3><p>Expand / collapse, rarity badges</p></div>
-        <div class="card brand"><h3>📌 Sticky elements</h3><p>Row numbers, back-to-top buttons</p></div>
+    <!-- WHY NOT JUST PATCH -->
+    <section id="math">
+      <h2><span class="kick">The fair question</span>"Can't we just find the root cause without all this?"</h2>
+      <p>It's the right question to ask. The honest answer: <strong>we've already tried, 23 times.</strong> Each attempt cost about 5 days and failed for the same reason — the code is too tangled to separate cause from effect.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Approach</th><th>Cost / attempt</th><th>Odds of success</th><th>Regression risk</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Keep patching in place</strong></td><td>~5 days</td><td><span class="pill bad">~10%</span></td><td><span class="pill bad">High</span></td></tr>
+            <tr><td><strong>Refactor first, then fix</strong></td><td>6 wks once + ~1.5 days / fix</td><td><span class="pill good">~70%</span></td><td><span class="pill good">Low</span></td></tr>
+          </tbody>
+        </table>
       </div>
-      <div class="callout good mt">
-        🔀 Built <strong>beside</strong> the old version, behind a switch. When ready, we flip the switch. If anything breaks — <strong>flip it back instantly, no emergency deploy.</strong>
-      </div>
-      <aside class="notes">
-        Setiap file punya satu tugas jelas. Ada file khusus Layout — di sinilah nanti masalah white-space diperbaiki lewat desain. Lalu ada Scrolling, Loading, Cards, Grouping, dan Sticky elements. Yang paling penting: semua dibangun DI SAMPING versi lama, di balik sebuah saklar. Kalau versi baru siap, kita nyalakan. Kalau ada yang rusak, kita matikan lagi seketika — tanpa deploy darurat, tanpa drama.
-      </aside>
-    </section>
-
-    <!-- 7. Three payoffs -->
-    <section>
-      <span class="kicker">§4 · Why refactor — three concrete payoffs</span>
-      <h2>Organized, faster to debug, easier to extend</h2>
-      <div class="grid cols-3">
-        <div class="card good">
-          <h3>1 · Organized, not gigantic</h3>
-          <p>Understand one ~300-line file in <strong>~30 min</strong> vs. <strong>~12 hours</strong> reading the giant file today.</p>
-        </div>
-        <div class="card good">
-          <h3>2 · Faster root cause</h3>
-          <p>A "white space" report goes straight to the Layout file. First-attempt fix rate: <strong>~10% → ~70%</strong>.</p>
-        </div>
-        <div class="card good">
-          <h3>3 · Easier features & debugging</h3>
-          <p>Change one file, leave others untouched. Each file has its own small tests — we know what broke before the user does.</p>
-        </div>
-      </div>
-      <aside class="notes">
-        Kenapa ini berharga? Tiga hal konkret. Satu, kodenya jadi rapi — developer bisa paham satu file 300 baris dalam 30 menit, bukan 12 jam membaca file raksasa. Dua, mencari penyebab bug jadi cepat — laporan white-space langsung menuju file Layout. Kami perkirakan tingkat berhasil sekali coba naik dari 10 persen menjadi 70 persen. Tiga, menambah fitur dan debugging jadi lebih mudah, karena tiap file punya tesnya sendiri.
-      </aside>
-    </section>
-
-    <!-- 8. Business impact table -->
-    <section>
-      <span class="kicker">§5 · What this means for the business</span>
-      <h2>The benefit compounds over ~3 months</h2>
-      <table>
-        <thead><tr><th style="width:46%">Today</th><th>After refactor</th></tr></thead>
-        <tbody>
-          <tr><td>Bug fix ~5 days; breaks something ~1 in 4</td><td><span class="pill good">~1.5 days</span> · breaks ~1 in 20</td></tr>
-          <tr><td>New feature: ~2 wks + ~1 wk follow-up fixes</td><td><span class="pill good">~1 wk</span> + ~2 days follow-up</td></tr>
-          <tr><td>New dev: 4–6 wks to contribute</td><td><span class="pill good">1–2 wks</span></td></tr>
-          <tr><td>QA: full manual sweep, ~1 day</td><td><span class="pill good">~2 hours</span> · targeted to affected file</td></tr>
-        </tbody>
-      </table>
-      <div class="callout good mt">
-        💡 Within <strong>~3 months</strong> of normal work, the team has saved more time than this refactor cost. The refactor is invisible the day after release — the payoff shows up later.
-      </div>
-      <aside class="notes">
-        Mari bicara bahasa bisnis. Hari ini perbaikan bug 5 hari — nanti satu setengah hari. Fitur baru hari ini 2 minggu plus 1 minggu perbaikan ikutan — nanti cukup 1 minggu. Onboarding developer dari 4 sampai 6 minggu jadi 1 sampai 2 minggu. QA dari 1 hari penuh jadi 2 jam. Dan ini kuncinya: penghematan ini BERLIPAT. Dalam waktu sekitar 3 bulan kerja normal, kita sudah menghemat lebih banyak waktu daripada biaya refactor-nya. Manfaatnya tidak terlihat besok, tapi muncul beberapa bulan kemudian.
-      </aside>
-    </section>
-
-    <!-- 9. Features touched -->
-    <section>
-      <span class="kicker">§6 · Features touched by the refactor</span>
-      <h2>What's in scope — all need parity testing (Week 5)</h2>
-      <div class="grid cols-2 small">
-        <ul>
-          <li>Vertical & horizontal scrolling</li>
-          <li>Text view (カード名) / Image view (画像表示)</li>
-          <li>View toggle (text ↔ image) — keeps scroll position</li>
-          <li>Cylinder switch (左/右) — scroll position per cylinder</li>
-          <li>Loading overlay</li>
-          <li>Hidden columns (masked data)</li>
-        </ul>
-        <ul>
-          <li>Grouping — expand / collapse</li>
-          <li>Rarity badges & popovers</li>
-          <li>Sticky row numbers (1, 2, 3 …)</li>
-          <li><strong>1枚目へ / 100枚目へ</strong> jump buttons</li>
-          <li>Pattern-match auto-scroll</li>
-          <li>"Detail" button (modal)</li>
-        </ul>
-      </div>
-      <div class="grid cols-2 mt">
-        <div class="card good"><h3>✅ NOT touched</h3><p>1-table & 2-table views · search, login, settings, gacha, history · backend / API / DB · the in-progress Go BE cutover</p></div>
-        <div class="card brand"><h3>🛡 Two safety nets</h3><p>Side-by-side comparison (Week 5) + the feature switch (Week 6) — roll back instantly if anything slips through.</p></div>
-      </div>
-      <aside class="notes">
-        Untuk transparansi, ini semua fitur yang tersentuh dan perlu diuji ulang di Minggu 5 — scrolling, tampilan teks dan gambar, loading, grouping, rarity, tombol lompat, dan lainnya. Dan ini yang TIDAK tersentuh sama sekali: view 1-table dan 2-table, halaman search, login, settings, serta seluruh backend. Kita punya dua jaring pengaman: perbandingan berdampingan di Minggu 5, dan saklar fitur di Minggu 6.
-      </aside>
-    </section>
-
-    <!-- 10. DIVIDER: the hard question -->
-    <section class="divider" data-background-gradient="linear-gradient(135deg, #1e3a8a, #2563eb)">
-      <div class="num">04</div>
-      <span class="kicker">The owner's fair question</span>
-      <h1>"Can we find the root cause<br/>WITHOUT refactoring?"</h1>
-      <p style="font-size:.85em;color:#dbeafe;">Honest answer: we already tried — <strong style="color:#fff;">23 times.</strong></p>
-      <aside class="notes">
-        Sekarang pertanyaan yang sangat wajar dari Anda sebagai owner: "Tidak bisakah kita cari akar masalahnya tanpa harus refactor?" Jawaban jujur saya, dan ini penting — kita SUDAH mencoba, 23 kali. Slide berikutnya saya tunjukkan angkanya supaya keputusan kita berbasis data, bukan perasaan.
-      </aside>
-    </section>
-
-    <!-- 11. The math -->
-    <section>
-      <span class="kicker">§7 · Can we fix it without refactoring?</span>
-      <h2>The math</h2>
-      <table>
-        <thead><tr><th>Approach</th><th>Cost / attempt</th><th>First-attempt success</th><th>Regression risk</th></tr></thead>
-        <tbody>
-          <tr>
-            <td><strong>Continue patching in place</strong></td>
-            <td>~5 days</td>
-            <td><span class="pill bad">~10%</span> (we're at Round 23)</td>
-            <td><span class="pill bad">High</span></td>
-          </tr>
-          <tr>
-            <td><strong>Refactor first, then fix</strong></td>
-            <td>6 wks once + ~1.5 days / future fix</td>
-            <td><span class="pill good">~70%</span></td>
-            <td><span class="pill good">Low</span></td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="stat-row mt">
-        <div class="stat"><div class="n">~115 days</div><div class="l">Already burned (23 × 5 days) chasing the root cause</div></div>
-        <div class="stat"><div class="n">~30 days</div><div class="l">The 6-week refactor</div></div>
+      <div class="stats">
+        <div class="stat"><div class="n">~115 days</div><div class="l">Already spent (23 × 5 days) chasing it the old way</div></div>
+        <div class="stat"><div class="n">~30 days</div><div class="l">The one-time refactor</div></div>
         <div class="stat"><div class="n">~4×</div><div class="l">It would have paid for itself in that same period</div></div>
       </div>
-      <aside class="notes">
-        Mari lihat matematikanya. Terus menambal: 5 hari per percobaan, peluang berhasil cuma 10 persen, risiko tinggi merusak hal lain. Refactor dulu: sekali 6 minggu, lalu satu setengah hari per perbaikan, peluang berhasil 70 persen, risiko rendah. Faktanya, kita sudah membakar sekitar 115 hari mencoba cara lama. Refactor ini hanya 30 hari kerja. Artinya, kalau kita refactor sejak dulu, biayanya sudah balik modal hampir 4 kali lipat di periode yang sama.
-      </aside>
+      <p>The point isn't blame — it's that <strong>22 prior failures suggest the structure, not the team, is the obstacle</strong>. Even if the refactor doesn't directly find the root cause, it shrinks the search from 4,778 lines to about 300, making the cause findable for the first time.</p>
     </section>
 
-    <!-- 12. Honest framing -->
-    <section>
-      <span class="kicker">§7 · The honest framing</span>
-      <h2>When is each side right?</h2>
-      <div class="grid cols-2">
-        <div class="card warn">
-          <h3>Patch — if you believe the next attempt has a 90% chance</h3>
-          <p>Then refactoring is over-engineering. We should just patch it.</p>
+    <!-- TIMELINE -->
+    <section id="timeline">
+      <h2><span class="kick">The plan</span>Six weeks, with visible demos along the way</h2>
+      <p>Two tracks run side by side: the refactor itself, and normal development continuing on everything else. You see a real demo at the end of each key week.</p>
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-week">Week 1</div><div class="body"><strong>Foundation &amp; investigation</strong><span>Set up the new structure beside the old; a focused spike to surface any hidden surprises.</span></div></div>
+        <div class="tl-item"><div class="tl-week">Week 2</div><div class="body"><strong>Layout built</strong><span>White space and padding fixed by design. Demo: old vs. clean layout, side by side.</span></div></div>
+        <div class="tl-item"><div class="tl-week">Week 3</div><div class="body"><strong>Scrolling, view modes, grouping</strong><span>The core interactions rebuilt on the clean structure.</span></div></div>
+        <div class="tl-item"><div class="tl-week">Week 4</div><div class="body"><strong>Feature-complete behind the switch</strong><span>Rarity popovers, jump buttons, scroll memory. Internal walkthrough of every scenario.</span></div></div>
+        <div class="tl-item"><div class="tl-week">Week 5</div><div class="body"><strong>Parity proven</strong><span>Same data, both versions, confirmed identical behavior. Quality sign-off.</span></div></div>
+        <div class="tl-item"><div class="tl-week">Week 6</div><div class="body"><strong>In production</strong><span>Cutover, a 2-day safety soak, old code removed, retrospective.</span></div></div>
+        <div class="tl-item highlight"><div class="tl-week">Week 7+</div><div class="body"><strong>The white-space fix itself</strong><span>The first ticket on the clean code is the bug that started all of this — now a fast, high-confidence fix.</span></div></div>
+      </div>
+      <div class="callout">
+        <strong>With AI, this compresses to ~4 weeks</strong> — the reading and building phases shrink, while testing and the production safety period stay the same to keep quality intact.
+      </div>
+    </section>
+
+    <!-- CONTROL -->
+    <section id="control">
+      <h2><span class="kick">Staying in control</span>What happens if something slips</h2>
+      <div class="cards two">
+        <div class="card good">
+          <h4>🧯 If a user hits a problem in production</h4>
+          <p>It's a one-click rollback, not a 2 AM emergency. We flip the switch off, users instantly see the proven old version, and we investigate calmly the next working day.</p>
         </div>
         <div class="card good">
-          <h3>Refactor — 22 prior failures suggest the opposite</h3>
-          <p>The next patch is no more likely than the last. <strong>The structure of the code is the obstacle, not the developer's skill.</strong></p>
-        </div>
-      </div>
-      <div class="callout mt">
-        🔍 <strong>The indirect benefit:</strong> even if the refactor doesn't directly find the root cause, it makes it <strong>possible to find</strong>. The search space shrinks from <strong>4,778 lines → ~300</strong>.
-      </div>
-      <aside class="notes">
-        Saya ingin jujur soal kapan masing-masing pilihan benar. Kalau Anda yakin percobaan ke-24 punya peluang 90 persen berhasil, maka jangan refactor — tambal saja, itu over-engineering. Tapi 22 kegagalan sebelumnya menunjukkan sebaliknya. Yang jadi penghalang itu STRUKTUR kodenya, bukan kemampuan developer-nya. Dan manfaat tidak langsungnya: walau refactor sendiri tidak langsung menemukan akar masalah, ia membuat akar masalah itu MUNGKIN ditemukan — ruang pencarian menyusut dari 4.778 baris jadi sekitar 300.
-      </aside>
-    </section>
-
-    <!-- 12b. SUSPECTED CAUSES (§7a) -->
-    <section>
-      <span class="kicker">§7a · Suspected causes of the white-space issue</span>
-      <h2>A bounded set of 6 suspects — each isolatable after refactor</h2>
-      <table style="font-size:.62em;">
-        <thead><tr><th style="width:4%">#</th><th style="width:26%">Candidate cause</th><th>Why it shows as white space</th><th style="width:18%">Owning module</th></tr></thead>
-        <tbody>
-          <tr><td>1</td><td><strong>Virtualization window lag</strong></td><td>Window advances faster than rows mount → blank gap until catch-up</td><td>Scrolling</td></tr>
-          <tr><td>2</td><td><strong>Wrong / estimated row heights</strong></td><td>Spacer math off → gaps open between rows</td><td>Layout</td></tr>
-          <tr><td>3</td><td><strong>Async image decode</strong></td><td>Area paints before images decode → cells flash empty</td><td>Cards + Loading</td></tr>
-          <tr><td>4</td><td><strong>Overlay hides too early</strong></td><td>Lifts on data arrival, not render-complete → unpainted rows show</td><td>Loading</td></tr>
-          <tr><td>5</td><td><strong>Scroll-restore jump</strong></td><td>Position restored before layout settles → momentary blank</td><td>Scrolling</td></tr>
-          <tr><td>6</td><td><strong>Sticky / offset miscalc</strong></td><td>Geometry off by a few px under fast scroll</td><td>Sticky elements</td></tr>
-        </tbody>
-      </table>
-      <div class="callout warn mt small">
-        ⚠️ <strong>Hypotheses to confirm in the Week-1 spike</strong> — not findings. The likeliest culprits (#1, #2, #5) all live in <strong>scrolling + layout</strong>, today interleaved with everything else. A fix for #1 routinely triggers a regression that looks like #4 — isolating them is what makes Round 24 different.
-      </div>
-      <aside class="notes">
-        Ini menjawab pertanyaan soal penyebab. Masalah white-space sebenarnya punya enam tersangka — mulai dari keterlambatan rendering saat scroll cepat, salah hitung tinggi baris, decode gambar yang asinkron, sampai overlay yang hilang terlalu cepat. Saya tegaskan: ini masih HIPOTESIS yang akan kami buktikan di spike Minggu 1, bukan kesimpulan final. Tapi perhatikan — tersangka terkuat, nomor 1, 2, dan 5, semuanya ada di scrolling dan layout, yang hari ini tercampur dengan segalanya. Itulah kenapa kita tidak bisa mengisolasinya sekarang, dan itu yang membuat Ronde 24 berbeda.
-      </aside>
-    </section>
-
-    <!-- 13. Parallel work -->
-    <section>
-      <span class="kicker">§8 · Can refactor & new dev run in parallel?</span>
-      <h2>Partially — here's the split</h2>
-      <div class="grid cols-3 small">
-        <div class="card good">
-          <h3>✅ Run in parallel</h3>
-          <p>Backend / Go BE · search, login, gacha, history, settings · 1-table / 2-table view · bug fixes outside this view</p>
-        </div>
-        <div class="card warn">
-          <h3>⚠️ Should pause</h3>
-          <p>New features touching the sequence table · any "Round 24" patch · loading-overlay or scroll changes in this view</p>
+          <h4>🧪 If testing finds a mismatch in Week 5</h4>
+          <p>The date moves, never the quality bar. Cutover shifts 2–3 days while we fix and re-test — we ship only once the two versions match.</p>
         </div>
         <div class="card brand">
-          <h3>🟡 Case-by-case</h3>
-          <p>MobX store changes (additive = safe) · shared helpers (merge weekly) · Tailwind theming (global = safe)</p>
+          <h4>💡 If a new feature request comes mid-way</h4>
+          <p>We capture it and schedule it for after Week 6, so it lands on the better foundation. Protecting this queue is the project manager's main job.</p>
+        </div>
+        <div class="card brand">
+          <h4>📅 If the timeline slips</h4>
+          <p>It stays visible. A pre-approved 7th-week buffer absorbs surprises, and you hear about any change within 24 hours — no silent slippage.</p>
         </div>
       </div>
-      <div class="callout good mt small">
-        <strong>Capacity headline:</strong> the team is <strong>not</strong> at 0% throughput — ~0% on sequence-table work (intentional), <strong>~70%</strong> on other frontend work, <strong>~100%</strong> on backend / Go BE.
-      </div>
-      <aside class="notes">
-        Apakah tim berhenti total selama refactor? Tidak. Pekerjaan di luar tabel sequence — backend, search, login, perbaikan bug lain — tetap jalan, sekitar 70 persen kapasitas frontend dan 100 persen backend. Yang harus kita jeda hanya fitur baru di dalam tabel sequence ini, supaya tidak terbuang percuma. Beberapa hal kita koordinasikan mingguan. Jadi tolong sampaikan ke stakeholder: tim TIDAK di nol persen, hanya satu area yang dibekukan sementara.
-      </aside>
     </section>
 
-    <!-- 14. DIVIDER: timeline -->
-    <section class="divider" data-background-gradient="linear-gradient(135deg, #1e3a8a, #2563eb)">
-      <div class="num">05</div>
-      <span class="kicker">§10 · Timeline</span>
-      <h1>6 weeks — two tracks,<br/>side by side.</h1>
-      <p style="font-size:.82em;color:#dbeafe;">1 PM · 2 FE (FE1 senior, FE2) · 1 QA · 1 UX — none loaded above ~70%.</p>
-      <aside class="notes">
-        Sekarang timeline-nya. Enam minggu, dua jalur berjalan bersamaan: jalur refactor dan jalur development yang lain. Timnya satu PM, dua frontend engineer, satu QA, satu UX — dan tidak ada yang dibebani di atas 70 persen untuk pekerjaan ini.
-      </aside>
-    </section>
-
-    <!-- 15. Timeline table -->
-    <section>
-      <span class="kicker">§10 · Timeline — refactor + parallel-dev tracks</span>
-      <table style="font-size:.6em;">
-        <thead><tr><th style="width:7%">Wk</th><th style="width:55%">Refactor track</th><th>Parallel-dev track</th></tr></thead>
-        <tbody>
-          <tr><td><strong>1</strong></td><td>Foundation: scope, baseline screenshots, new structure beside old, 1-day spike for surprises</td><td>In-flight work continues. Pause new sequence-table tickets.</td></tr>
-          <tr><td><strong>2</strong></td><td><strong>Layout</strong> file — white-space + padding fixed by design. Dev-only visible.</td><td>Go BE cutover + unrelated bug fixes continue.</td></tr>
-          <tr><td><strong>3</strong></td><td>Scrolling, view modes, hidden columns, grouping.</td><td>Same. Sequence-table features stay queued.</td></tr>
-          <tr><td><strong>4</strong></td><td>Rarity popovers, back-to-top, scroll memory, auto-scroll. Internal "old vs. new" demo.</td><td>PM plans post-refactor backlog for a productive Week 7.</td></tr>
-          <tr><td><strong>5</strong></td><td>Side-by-side parity sweep — every § 6 scenario.</td><td><span class="pill warn">Reduced</span> QA busy on parity sweep.</td></tr>
-          <tr><td><strong>6</strong></td><td>Cutover · 2-day soak · delete old code · retro.</td><td>Full capacity resumes mid-week.</td></tr>
-          <tr><td><strong>7+</strong></td><td>—</td><td><strong>First ticket on clean code = the white-space race itself.</strong></td></tr>
-        </tbody>
-      </table>
-      <aside class="notes">
-        Ini rincian per minggunya. Minggu 1 fondasi dan spike untuk menemukan kejutan tersembunyi. Minggu 2 kita bangun Layout — di sinilah white-space diperbaiki lewat desain. Minggu 3 dan 4 fitur-fitur lain plus demo internal old-versus-new. Minggu 5 uji paritas penuh. Minggu 6 cutover, masa pengamatan dua hari, lalu hapus kode lama. Dan perhatikan baris terakhir: Minggu 7, tiket pertama di atas kode yang sudah bersih adalah bug white-space itu sendiri.
-      </aside>
-    </section>
-
-    <!-- 15b. AI-ASSISTED TIMELINE (§10a) -->
-    <section>
-      <span class="kicker">§10a · AI-assisted timeline — ~4 weeks instead of ~6</span>
-      <h2>AI compresses build &amp; read — not QA or the soak</h2>
-      <table>
-        <thead><tr><th style="width:40%">Phase</th><th>Manual</th><th>With AI</th><th>Why</th></tr></thead>
-        <tbody>
-          <tr><td>Read / audit the giant file</td><td>~3 days</td><td><span class="pill good">~1 day</span></td><td>AI summarises &amp; cross-references fast</td></tr>
-          <tr><td>Scaffold 5–6 modules + tests</td><td>~2.5 wks</td><td><span class="pill good">~1.5 wks</span></td><td>AI drafts; engineer reviews &amp; corrects</td></tr>
-          <tr><td>Parity sweep (QA)</td><td>~1 wk</td><td>~1 wk</td><td>Calendar-bound — no change</td></tr>
-          <tr><td>Production soak</td><td>2 days</td><td>2 days</td><td>Calendar-bound — no change</td></tr>
-          <tr><td><strong>Total</strong></td><td><strong>~6 wks</strong></td><td><span class="pill good">~4 wks</span></td><td>Savings entirely in build/read</td></tr>
-        </tbody>
-      </table>
-      <div class="callout warn mt small">
-        ⚠️ <strong>Honest caveat:</strong> AI speeds up <strong>writing</strong> the refactor — it does <strong>not</strong> lower the bar for reviewing it. AI-generated splits need <strong>more</strong> careful review, not less. The 4-week figure assumes the <strong>same QA rigour</strong> as the 6-week plan, not a thinner one.
-      </div>
-      <aside class="notes">
-        Untuk pertanyaan soal AI. Kalau kita pakai AI, fase membaca dan membangun kode bisa dipangkas signifikan — membaca file dari 3 hari jadi 1 hari, scaffolding modul dari dua setengah minggu jadi satu setengah minggu. Tapi saya jujur: fase QA dan masa pengamatan produksi TIDAK bisa dipercepat, karena itu terikat waktu kalender, bukan kecepatan mengetik. Totalnya, dari 6 minggu menjadi sekitar 4 minggu. Satu catatan penting: AI mempercepat MENULIS refactor, tapi tidak menurunkan standar REVIEW-nya. Angka 4 minggu ini tetap dengan kualitas QA yang sama ketatnya.
-      </aside>
-    </section>
-
-    <!-- 16. Milestones the owner sees -->
-    <section>
-      <span class="kicker">§10 · Milestones the owner sees</span>
-      <h2>A visible demo at the end of each key week</h2>
-      <table>
-        <thead><tr><th>End of</th><th>Milestone</th><th>Demo</th></tr></thead>
-        <tbody>
-          <tr><td><strong>W1</strong></td><td>Foundation set, surprises catalogued</td><td>Spike report + baseline screenshots</td></tr>
-          <tr><td><strong>W2</strong></td><td>New table renders cleanly (behind switch)</td><td>Side-by-side: old vs. clean layout</td></tr>
-          <tr><td><strong>W4</strong></td><td>Feature-complete behind the switch</td><td>Walkthrough of every scenario</td></tr>
-          <tr><td><strong>W5</strong></td><td>Parity proven</td><td>QA sign-off report</td></tr>
-          <tr><td><strong>W6</strong></td><td>In production</td><td>Dashboard + retrospective</td></tr>
-        </tbody>
-      </table>
-      <div class="callout mt">
-        <strong>Bottom line:</strong> the refactor does not freeze the team. It freezes <strong>one area of the product for 6 weeks</strong> while everything else continues at a reduced but reasonable pace.
-      </div>
-      <aside class="notes">
-        Dan setiap minggu kunci, Anda akan melihat demo nyata, bukan sekadar laporan. Minggu 1 laporan spike, Minggu 2 demo old-versus-new, Minggu 4 walkthrough lengkap, Minggu 5 sign-off QA, Minggu 6 dashboard di produksi plus retrospektif. Kesimpulannya: refactor ini TIDAK membekukan tim — ia hanya membekukan satu area produk selama 6 minggu, sementara semua yang lain tetap jalan dengan kecepatan wajar.
-      </aside>
-    </section>
-
-    <!-- 17. Manual safety + risks -->
-    <section>
-      <span class="kicker">§11–12 · Safety levers & risks</span>
-      <h2>Every safety lever is manual — the team stays in control</h2>
-      <div class="grid cols-2 small">
+    <!-- SCOPE -->
+    <section id="scope">
+      <h2><span class="kick">Scope</span>What's in, and what stays safely out</h2>
+      <div class="cards two">
         <div class="card good">
-          <h3>🧯 When something goes wrong</h3>
-          <p><strong>Prod regression →</strong> flip the switch off, users see the old version instantly. No 2 AM page.<br/>
-          <strong>Parity bug in W5 →</strong> delay cutover 2–3 days, don't ship until clean.<br/>
-          <strong>Mid-refactor feature request →</strong> backlog it. Scope is not bent.</p>
+          <h4>✅ Stays safely untouched</h4>
+          <p>The simpler 1-table and 2-table views · search, login, settings, history · the backend, API, and database · the in-progress backend cutover. Zero risk to any of these.</p>
         </div>
-        <div class="card warn">
-          <h3>⚠️ Top risks, handled</h3>
-          <p><strong>Hidden complexity →</strong> Week-1 spike.<br/>
-          <strong>Slippage →</strong> Week-7 buffer pre-approved.<br/>
-          <strong>Scope creep →</strong> strict "parity only".<br/>
-          <strong>Old code lingers →</strong> deletion in W6 is a gate, not optional.</p>
+        <div class="card brand">
+          <h4>🎯 Sequenced as a fast follow-up</h4>
+          <p>The white-space fix lands in Week 7 on the clean structure. No new user-facing features compete for this code during the window — keeping the cutover clean and reversible.</p>
         </div>
       </div>
-      <div class="callout warn mt small">
-        🚦 Protecting against scope creep is <strong>the PM's primary job</strong> for these 6 weeks — it's the most common cause of refactor-project failure.
-      </div>
-      <aside class="notes">
-        Soal keamanan, semua tuas pengaman kita buat manual supaya tim tetap pegang kendali. Kalau ada regresi di produksi, engineer cukup matikan saklar, user langsung lihat versi lama, tidak ada yang dibangunkan jam 2 pagi. Kalau QA menemukan bug paritas di Minggu 5, cutover ditunda 2 sampai 3 hari, kita tidak rilis sampai bersih. Kalau ada permintaan fitur di tengah jalan, kita catat ke backlog — scope tidak ditekuk. Menjaga scope inilah tugas utama PM, karena scope creep adalah penyebab nomor satu kegagalan proyek refactor.
-      </aside>
     </section>
 
-    <!-- 18. Say it twice -->
-    <section data-background-gradient="linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)">
-      <span class="kicker" style="background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3);color:#fff;">§13 · Say it twice on purpose</span>
-      <h2 style="color:#fff;">Before approving, internalize this:</h2>
-      <div class="grid cols-2">
-        <div class="card" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.2);">
-          <h3 style="color:#fff;">🎯 The win</h3>
-          <p style="color:#cbd5e1;">We raise the odds of solving the white-space bug from <strong style="color:#fff;">~10% to ~70%</strong> — set up to close fast in Week 7.</p>
-        </div>
-        <div class="card" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.2);">
-          <h3 style="color:#fff;">✅ And it compounds</h3>
-          <p style="color:#cbd5e1;">We make that bug — and <strong style="color:#fff;">every future bug like it</strong> — dramatically cheaper to fix from then on.</p>
-        </div>
+    <!-- FINAL -->
+    <section id="decision" style="border-bottom:none;">
+      <div class="final">
+        <h2>End the cycle of patches.</h2>
+        <p>We raise the odds of solving the white-space bug from ~10% to ~70%, set it up to close fast in Week 7, and make every future fix dramatically cheaper from then on.</p>
+        <p style="font-size:0.92rem;opacity:0.9;">~4–6 weeks · rollback by a single switch · pays for itself within ~3 months.</p>
       </div>
-      <div class="callout mt" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.2);border-left-color:#60a5fa;color:#e2e8f0;">
-        If your priority is a <strong style="color:#fff;">guaranteed same-day patch right now</strong>, that's a valid goal — let's choose that plan together, since this proposal optimizes for the durable win.<br/><br/>
-        If you want to <strong style="color:#fff;">end the cycle of Round 24, 25, 26</strong> that the current architecture keeps producing — this is exactly the right direction.
-      </div>
-      <aside class="notes">
-        Izinkan saya tegaskan sekali lagi dengan sengaja, karena ini yang paling penting sebelum Anda memutuskan. Kita MENAIKKAN peluang menyelesaikan bug white-space dari sekitar 10 persen menjadi 70 persen — dan disiapkan untuk ditutup cepat di Minggu 7. Dan itu BERLIPAT: bug itu, serta setiap bug serupa di masa depan, jadi jauh lebih murah diperbaiki. Jadi kalau prioritas Anda adalah patch instan hari ini juga, itu tujuan yang sah — mari pilih rencana itu bersama, karena proposal ini dioptimalkan untuk kemenangan jangka panjang. Tapi kalau Anda ingin mengakhiri siklus Ronde 24, 25, dan 26 yang terus dihasilkan arsitektur saat ini — maka inilah arah yang benar.
-      </aside>
     </section>
 
-    <!-- 19. Closing -->
-    <section data-background-gradient="linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #3b82f6 100%)">
-      <span class="kicker" style="background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3);color:#fff;">Decision</span>
-      <h1 style="color:#fff;">End the cycle of patches.</h1>
-      <p style="color:#dbeafe;font-size:.95em;">~4–6 weeks · rollback by a single switch · the payoff compounds within 3 months.</p>
-      <div class="stat-row mt">
-        <div class="stat"><div class="n" style="color:#fff;">~4–6 wks</div><div class="l" style="color:#bfdbfe;">Investment (AI / manual)</div></div>
-        <div class="stat"><div class="n" style="color:#fff;">~70%</div><div class="l" style="color:#bfdbfe;">First-attempt fix rate after</div></div>
-        <div class="stat"><div class="n" style="color:#fff;">~4×</div><div class="l" style="color:#bfdbfe;">Return vs. patching cost</div></div>
-      </div>
-      <aside class="notes">
-        Jadi keputusannya: mari akhiri siklus tambal-menambal ini. Investasinya 4 sampai 6 minggu, bisa di-rollback hanya dengan satu saklar, dan hasilnya berlipat dalam 3 bulan. Setelah refactor, tingkat keberhasilan perbaikan sekali coba sekitar 70 persen, dengan return sekitar 4 kali lipat dibanding biaya menambal. Terima kasih. Saya buka untuk pertanyaan dan diskusi.
-      </aside>
-    </section>
+  </main>
 
-  </div>
-</div>
+  <footer>
+    Sequence Table Refactor — proposal for review · prepared 2026-06-08
+  </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
-<script>
-  Reveal.initialize({
-    hash: true,
-    slideNumber: 'c/t',
-    transition: 'slide',
-    transitionSpeed: 'default',
-    backgroundTransition: 'fade',
-    width: 1280,
-    height: 720,
-    margin: 0.06,
-    controls: true,
-    progress: true,
-    center: false,
-    plugins: [RevealNotes, RevealHighlight],
-  });
-</script>
 </body>
 </html>
