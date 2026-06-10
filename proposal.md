@@ -4,7 +4,7 @@
 > **Audience:** Product Owner / Business stakeholder
 > **Created:** 2026-06-08
 > **Type:** Engineering investment — refactor, not feature
-> **Target window:** 6 weeks (manual team, no AI assistance)
+> **Target window:** ~6 weeks manual **/ ~4 weeks AI-assisted** (see § 10a)
 
 ---
 
@@ -14,7 +14,25 @@ We will not promise that the issues users see on the sequence table today — **
 
 What we **are** proposing is a different kind of solution: an **indirect solution**. Instead of patching the symptoms again, we restructure the underlying code so that **every future fix lands faster, cheaper, and safer**. The white-space bug itself becomes a future ticket — but a far easier one to close.
 
-**Cost:** 6 weeks. **Rollback:** flip a switch — zero redeploy.
+**Cost:** ~6 weeks manual / ~4 weeks with AI. **Rollback:** flip a switch — zero redeploy.
+
+---
+
+## ❓ Reviewer's four questions — direct answers
+
+These four questions were raised in review. Short answers here; detail in the linked sections.
+
+**Q1 — Will this refactor solve the issue, and how long to finish?**
+Not directly, and that is deliberate. The refactor (~6 weeks manual / ~4 weeks with AI) does **not** itself fix the white-space bug. It turns the fix into a small, isolated follow-up scheduled for **Week 7**, estimated at **~1.5 days with ~70 % first-attempt success** (vs. ~10 % today). Realistic answer: *the issue is targeted the week after cutover and most likely closed within a few days of focused work — not inside this 6-week window.* If you need a guaranteed fix sooner, see § 13. → detail in § 7, § 9, § 13.
+
+**Q2 — What are the possible causes that impact this issue?**
+White-space-on-fast-scroll in a virtualized table almost always comes from a small set of suspects. Today they are tangled together so no one can isolate which one fires. After refactor each suspect lives in its own file and can be tested alone. Full candidate list → new **§ 7a**.
+
+**Q3 — Can the refactor and normal development run in parallel?**
+Partially. **Yes** for anything outside the sequence-table view (~70 % frontend throughput continues, ~100 % backend). **No** for new work *inside* the view — that is queued to Week 7 to avoid expensive rework. Full breakdown → § 8.
+
+**Q4 — I use AI. How much time does that cut?**
+The build phases (reading the 4,778-line file, scaffolding the 5–6 modules, generating tests, building the parity-diff harness) compress a lot with AI. The validation phases (QA parity sweep, 2-day production soak, stakeholder demos) are **calendar-bound and do not compress**. Net: **~6 weeks → ~4 weeks**. AI-assisted timeline → new **§ 10a**.
 
 ---
 
@@ -139,6 +157,23 @@ Even if the refactor itself does not directly find the root cause, the resulting
 
 ---
 
+## 7a. Suspected causes of the white-space issue
+
+These are **hypotheses to confirm in the Week-1 spike**, not confirmed findings. The point of listing them is twofold: (1) show the issue has a *bounded* set of likely causes, and (2) show why the refactor matters — today these suspects share one file and fire into each other, so we cannot test any of them in isolation. After refactor, each suspect lives in the module named in the right-hand column and can be reproduced and fixed on its own.
+
+| # | Candidate cause | Why it shows up as white space | Owning module after refactor |
+|---|---|---|---|
+| 1 | **Virtualization window lag** | On fast scroll the visible window advances faster than rows mount → a blank gap until rendering catches up | Scrolling |
+| 2 | **Wrong / estimated row heights** | If row height is estimated and the real height differs, the spacer math is off and gaps open between rows | Layout |
+| 3 | **Async image decode** | Cells reserve space but images decode asynchronously; if the area paints before decode, cells flash empty | Cards + Loading |
+| 4 | **Overlay hides too early** | The loading overlay lifts on *data arrival* instead of *render complete*, exposing not-yet-painted rows | Loading |
+| 5 | **Scroll-restore jump** | Restoring scroll position after a view toggle or cylinder switch lands before layout settles → momentary blank | Scrolling |
+| 6 | **Sticky / offset miscalculation** | Sticky row numbers or header offsets throw the content-region geometry off by a few px under fast scroll | Sticky elements |
+
+**Why this is the strongest argument for refactoring first:** the most likely culprit (#1, #2, #5) all live in *scrolling + layout* — and today that logic is interleaved with loading, cards, grouping and sticky behaviour in the same 4,778-line file. A fix for #1 routinely triggers a regression that looks like #4. Isolating them is precisely what makes Round 24 different from Rounds 1–23.
+
+---
+
 ## 8. Can refactor and new development happen in parallel?
 
 **Partially.** Here is the breakdown.
@@ -229,6 +264,31 @@ The PM should communicate this split to stakeholders so feature commitments outs
 | W6 | In production | Dashboard + retrospective |
 
 **Bottom line for the owner:** the refactor does not freeze the team. It freezes **one area of the product for 6 weeks** while everything else continues at a reduced but reasonable pace.
+
+---
+
+## 10a. AI-assisted timeline — ~4 weeks instead of ~6
+
+With AI assistance the **build and read** phases compress sharply; the **validation** phases do not, because parity testing, the production soak, and stakeholder demos are bound by calendar time and human judgement, not typing speed.
+
+| Week | Refactor track **with AI** | Where AI helps |
+|---|---|---|
+| **1** | Foundation + spike. AI maps the 4,778-line file, drafts module boundaries, and ranks the § 7a candidate causes faster than manual reading. | Audit/read: ~3 days → ~1 day |
+| **2** | Build Layout + Scrolling + Loading. AI scaffolds each module and generates unit tests; engineers review and correct. | Build weeks 2–3 fold into ~1.5 |
+| **3** | Build Cards + Grouping + Sticky; wire the feature switch. AI generates the old-vs-new parity-diff harness. | Test + harness authoring |
+| **4** | Parity sweep → cutover → 2-day soak. **Human-bound: AI does not shorten QA sign-off or the soak.** | — (intentionally unchanged) |
+
+### What AI does and does not change
+
+| Phase | Manual | With AI | Why |
+|---|---|---|---|
+| Read / audit the giant file | ~3 days | ~1 day | AI summarises and cross-references quickly |
+| Scaffold 5–6 modules + tests | ~2.5 weeks | ~1.5 weeks | AI drafts; engineer reviews and corrects |
+| Parity sweep (QA) | ~1 week | ~1 week | Calendar-bound — no change |
+| Production soak | 2 days | 2 days | Calendar-bound — no change |
+| **Total** | **~6 weeks** | **~4 weeks** | Savings are entirely in build/read |
+
+> ⚠️ **Honest caveat:** AI speeds up *writing* the refactor — it does **not** lower the bar for reviewing it. AI-generated module splits need *more* careful human review, not less, because a subtle behaviour change is exactly what a parity sweep must catch. The 4-week number assumes the same QA rigour as the 6-week plan, not a thinner one.
 
 ---
 

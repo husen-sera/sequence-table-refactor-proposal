@@ -170,7 +170,7 @@
       <div class="meta-bar" style="color:#bfdbfe;">
         <span>📅 Created 2026-06-08</span>
         <span>👥 Product Owner / Business stakeholder</span>
-        <span>⏱ 6-week window</span>
+        <span>⏱ ~6 wks manual · ~4 wks with AI</span>
         <span>🏷 Refactor, not a feature</span>
       </div>
       <p style="color:#bfdbfe;font-size:.6em;margin-top:1.4em;">Press <strong style="color:#fff;">→</strong> / Space to advance · <strong style="color:#fff;">Esc</strong> for overview · <strong style="color:#fff;">F</strong> for fullscreen</p>
@@ -191,9 +191,33 @@
         </div>
       </div>
       <div class="stat-row mt">
-        <div class="stat"><div class="n">6 wks</div><div class="l">Total cost</div></div>
+        <div class="stat"><div class="n">~4–6 wks</div><div class="l">AI-assisted / manual</div></div>
         <div class="stat"><div class="n">1 flip</div><div class="l">Rollback — zero redeploy</div></div>
         <div class="stat"><div class="n">~23×</div><div class="l">Symptom patched, failed</div></div>
+      </div>
+    </section>
+
+    <!-- 2b. REVIEWER'S FOUR QUESTIONS -->
+    <section>
+      <span class="kicker">❓ Reviewer's four questions — direct answers</span>
+      <h2>The four things you asked, up front</h2>
+      <div class="grid cols-2 small">
+        <div class="card brand">
+          <h3>Q1 · Will it solve the issue? How long?</h3>
+          <p><strong>Not directly</strong> — by design. The refactor turns the fix into a <strong>Week-7 follow-up</strong>: ~1.5 days, ~70% first-attempt success (vs. ~10% today).</p>
+        </div>
+        <div class="card brand">
+          <h3>Q2 · What are the possible causes?</h3>
+          <p>A <strong>bounded set of 6 suspects</strong> (next slide). Today they're tangled in one file; after refactor each is testable alone.</p>
+        </div>
+        <div class="card brand">
+          <h3>Q3 · Refactor + dev in parallel?</h3>
+          <p><strong>Yes</strong> outside this view (~70% FE, ~100% BE). <strong>No</strong> for new work inside it — queued to Week 7.</p>
+        </div>
+        <div class="card brand">
+          <h3>Q4 · I use AI — how much faster?</h3>
+          <p>Build/read phases compress; QA &amp; soak don't. Net <strong>~6 wks → ~4 wks</strong>.</p>
+        </div>
       </div>
     </section>
 
@@ -365,6 +389,26 @@
       </div>
     </section>
 
+    <!-- 12b. SUSPECTED CAUSES (§7a) -->
+    <section>
+      <span class="kicker">§7a · Suspected causes of the white-space issue</span>
+      <h2>A bounded set of 6 suspects — each isolatable after refactor</h2>
+      <table style="font-size:.62em;">
+        <thead><tr><th style="width:4%">#</th><th style="width:26%">Candidate cause</th><th>Why it shows as white space</th><th style="width:18%">Owning module</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><strong>Virtualization window lag</strong></td><td>Window advances faster than rows mount → blank gap until catch-up</td><td>Scrolling</td></tr>
+          <tr><td>2</td><td><strong>Wrong / estimated row heights</strong></td><td>Spacer math off → gaps open between rows</td><td>Layout</td></tr>
+          <tr><td>3</td><td><strong>Async image decode</strong></td><td>Area paints before images decode → cells flash empty</td><td>Cards + Loading</td></tr>
+          <tr><td>4</td><td><strong>Overlay hides too early</strong></td><td>Lifts on data arrival, not render-complete → unpainted rows show</td><td>Loading</td></tr>
+          <tr><td>5</td><td><strong>Scroll-restore jump</strong></td><td>Position restored before layout settles → momentary blank</td><td>Scrolling</td></tr>
+          <tr><td>6</td><td><strong>Sticky / offset miscalc</strong></td><td>Geometry off by a few px under fast scroll</td><td>Sticky elements</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warn mt small">
+        ⚠️ <strong>Hypotheses to confirm in the Week-1 spike</strong> — not findings. The likeliest culprits (#1, #2, #5) all live in <strong>scrolling + layout</strong>, today interleaved with everything else. A fix for #1 routinely triggers a regression that looks like #4 — isolating them is what makes Round 24 different.
+      </div>
+    </section>
+
     <!-- 13. Parallel work -->
     <section>
       <span class="kicker">§8 · Can refactor & new dev run in parallel?</span>
@@ -411,6 +455,25 @@
           <tr><td><strong>7+</strong></td><td>—</td><td><strong>First ticket on clean code = the white-space race itself.</strong></td></tr>
         </tbody>
       </table>
+    </section>
+
+    <!-- 15b. AI-ASSISTED TIMELINE (§10a) -->
+    <section>
+      <span class="kicker">§10a · AI-assisted timeline — ~4 weeks instead of ~6</span>
+      <h2>AI compresses build &amp; read — not QA or the soak</h2>
+      <table>
+        <thead><tr><th style="width:40%">Phase</th><th>Manual</th><th>With AI</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Read / audit the giant file</td><td>~3 days</td><td><span class="pill good">~1 day</span></td><td>AI summarises &amp; cross-references fast</td></tr>
+          <tr><td>Scaffold 5–6 modules + tests</td><td>~2.5 wks</td><td><span class="pill good">~1.5 wks</span></td><td>AI drafts; engineer reviews &amp; corrects</td></tr>
+          <tr><td>Parity sweep (QA)</td><td>~1 wk</td><td>~1 wk</td><td>Calendar-bound — no change</td></tr>
+          <tr><td>Production soak</td><td>2 days</td><td>2 days</td><td>Calendar-bound — no change</td></tr>
+          <tr><td><strong>Total</strong></td><td><strong>~6 wks</strong></td><td><span class="pill good">~4 wks</span></td><td>Savings entirely in build/read</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warn mt small">
+        ⚠️ <strong>Honest caveat:</strong> AI speeds up <strong>writing</strong> the refactor — it does <strong>not</strong> lower the bar for reviewing it. AI-generated splits need <strong>more</strong> careful review, not less. The 4-week figure assumes the <strong>same QA rigour</strong> as the 6-week plan, not a thinner one.
+      </div>
     </section>
 
     <!-- 16. Milestones the owner sees -->
@@ -480,9 +543,9 @@
     <section data-background-gradient="linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #3b82f6 100%)">
       <span class="kicker" style="background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3);color:#fff;">Decision</span>
       <h1 style="color:#fff;">End the cycle of patches.</h1>
-      <p style="color:#dbeafe;font-size:.95em;">6 weeks · rollback by a single switch · the payoff compounds within 3 months.</p>
+      <p style="color:#dbeafe;font-size:.95em;">~4–6 weeks · rollback by a single switch · the payoff compounds within 3 months.</p>
       <div class="stat-row mt">
-        <div class="stat"><div class="n" style="color:#fff;">6 wks</div><div class="l" style="color:#bfdbfe;">Investment</div></div>
+        <div class="stat"><div class="n" style="color:#fff;">~4–6 wks</div><div class="l" style="color:#bfdbfe;">Investment (AI / manual)</div></div>
         <div class="stat"><div class="n" style="color:#fff;">~70%</div><div class="l" style="color:#bfdbfe;">First-attempt fix rate after</div></div>
         <div class="stat"><div class="n" style="color:#fff;">~4×</div><div class="l" style="color:#bfdbfe;">Return vs. patching cost</div></div>
       </div>
