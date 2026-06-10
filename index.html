@@ -175,22 +175,22 @@
       </div>
       <p style="color:#bfdbfe;font-size:.6em;margin-top:1.4em;">Press <strong style="color:#fff;">→</strong> / Space to advance · <strong style="color:#fff;">Esc</strong> for overview · <strong style="color:#fff;">F</strong> for fullscreen</p>
       <aside class="notes">
-        Selamat pagi/siang, terima kasih sudah meluangkan waktu. Hari ini saya ingin mengusulkan sebuah investasi teknis untuk tabel sequence kita. Tapi izinkan saya jujur dari awal — ini BUKAN proposal fitur baru, dan ini BUKAN janji bahwa bug-nya langsung hilang. Ini proposal untuk memperbaiki STRUKTUR kode, bukan sekadar menambal gejalanya. Saya akan jelaskan kenapa pendekatan ini justru yang paling masuk akal secara bisnis.
+        Selamat pagi/siang, terima kasih sudah meluangkan waktu. Hari ini saya ingin mengusulkan sebuah investasi teknis untuk tabel sequence kita. Kabar baiknya: dengan membenahi struktur kode lebih dulu, kita bisa menaikkan peluang menyelesaikan bug ini secara signifikan, dan mempercepat semua perbaikan ke depan. Fokusnya adalah memperbaiki STRUKTUR, bukan sekadar menambal gejalanya. Saya akan jelaskan kenapa pendekatan ini justru yang paling masuk akal secara bisnis.
       </aside>
     </section>
 
     <!-- 2. TL;DR -->
     <section>
       <span class="kicker">§1 · TL;DR</span>
-      <h2>We are not promising to "solve" the bug.</h2>
+      <h2>We can sharply raise our odds of solving the bug.</h2>
       <div class="grid cols-2">
-        <div class="card bad">
-          <h3>❌ What we won't promise</h3>
-          <p>That white space on fast scroll, layout inconsistencies, and loading glitches are <strong>100% solved</strong> by this work. The team already patched these <strong>~23 times</strong>.</p>
+        <div class="card brand">
+          <h3>🎯 The honest target</h3>
+          <p>Fix the structure first, and the first-attempt fix rate on white-space, layout, and loading glitches climbs from <strong>~10% to ~70%</strong>. The bug becomes a small, high-confidence follow-up.</p>
         </div>
         <div class="card good">
-          <h3>✅ What we propose instead</h3>
-          <p>An <strong>indirect solution</strong>: restructure the underlying code so <strong>every future fix lands faster, cheaper, and safer</strong>. The bug becomes an easy follow-up ticket.</p>
+          <h3>✅ How we get there</h3>
+          <p>An <strong>indirect solution</strong>: restructure the underlying code so <strong>every future fix lands faster, cheaper, and safer</strong>. 23 attempts taught us the structure is the obstacle.</p>
         </div>
       </div>
       <div class="stat-row mt">
@@ -199,18 +199,16 @@
         <div class="stat"><div class="n">~23×</div><div class="l">Symptom patched, failed</div></div>
       </div>
       <aside class="notes">
-        Intinya begini. Saya TIDAK akan menjanjikan bahwa masalah white-space saat scroll cepat akan 100% selesai dengan pekerjaan ini. Kenapa? Karena tim sudah mencoba menambalnya sekitar 23 kali, dan selalu gagal. Yang saya tawarkan adalah SOLUSI TIDAK LANGSUNG: kita rapikan dulu kodenya, supaya setiap perbaikan ke depan jadi lebih cepat, lebih murah, dan lebih aman. Biayanya sekitar 4 sampai 6 minggu, dan kalau ada apa-apa, kita bisa kembalikan hanya dengan satu saklar — tanpa deploy darurat.
+        Intinya begini. Dengan membenahi struktur kode lebih dulu, kita bisa menaikkan peluang berhasil menyelesaikan bug white-space — dari sekitar 10 persen menjadi sekitar 70 persen pada percobaan pertama. 23 percobaan sebelumnya justru mengajarkan kita satu hal penting: yang jadi penghalang adalah strukturnya. Jadi yang saya tawarkan adalah SOLUSI TIDAK LANGSUNG: kita rapikan dulu kodenya, supaya setiap perbaikan ke depan jadi lebih cepat, lebih murah, dan lebih aman. Biayanya sekitar 4 sampai 6 minggu, dan kalau ada apa-apa, kita bisa kembalikan hanya dengan satu saklar — tanpa deploy darurat.
       </aside>
     </section>
 
     <!-- 2b. REVIEWER'S FOUR QUESTIONS -->
     <section>
-      <span class="kicker">❓ Reviewer's four questions — direct answers</span>
-      <h2>The four things you asked, up front</h2>
       <div class="grid cols-2 small">
         <div class="card brand">
           <h3>Q1 · Will it solve the issue? How long?</h3>
-          <p><strong>Not directly</strong> — by design. The refactor turns the fix into a <strong>Week-7 follow-up</strong>: ~1.5 days, ~70% first-attempt success (vs. ~10% today).</p>
+          <p><strong>Yes</strong> — via the surest path. Fixing the structure first turns the fix into a <strong>Week-7 follow-up</strong>: ~1.5 days, ~70% first-attempt success (vs. ~10% today).</p>
         </div>
         <div class="card brand">
           <h3>Q2 · What are the possible causes?</h3>
@@ -226,7 +224,7 @@
         </div>
       </div>
       <aside class="notes">
-        Sebelum masuk detail, saya ingin langsung menjawab empat pertanyaan yang muncul saat review. Pertama, apakah bug-nya selesai? Tidak langsung — tapi sesudah refactor, perbaikannya jadi tiket kecil di Minggu ke-7, kira-kira satu setengah hari, dengan peluang berhasil sekali coba 70 persen. Kedua, apa penyebabnya? Ada enam kemungkinan, saya tunjukkan sebentar lagi. Ketiga, apakah bisa jalan paralel dengan development lain? Bisa, untuk area di luar tabel ini. Keempat, kalau pakai AI berapa cepat? Dari 6 minggu bisa jadi sekitar 4 minggu.
+        Sebelum masuk detail, saya ingin langsung menjawab empat pertanyaan yang muncul saat review. Pertama, apakah bug-nya selesai? Ya — lewat jalur paling andal: kita benahi strukturnya dulu, lalu bug-nya ditutup cepat di Minggu ke-7, kira-kira satu setengah hari, dengan peluang berhasil sekali coba 70 persen — naik dari 10 persen hari ini. Kedua, apa penyebabnya? Ada enam kemungkinan, saya tunjukkan sebentar lagi. Ketiga, apakah bisa jalan paralel dengan development lain? Bisa, untuk area di luar tabel ini. Keempat, kalau pakai AI berapa cepat? Dari 6 minggu bisa jadi sekitar 4 minggu.
       </aside>
     </section>
 
@@ -585,20 +583,20 @@
       <h2 style="color:#fff;">Before approving, internalize this:</h2>
       <div class="grid cols-2">
         <div class="card" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.2);">
-          <h3 style="color:#fff;">❌ This sprint</h3>
-          <p style="color:#cbd5e1;">We are <strong style="color:#fff;">not</strong> fixing the white-space-during-fast-scroll race condition.</p>
+          <h3 style="color:#fff;">🎯 The win</h3>
+          <p style="color:#cbd5e1;">We raise the odds of solving the white-space bug from <strong style="color:#fff;">~10% to ~70%</strong> — set up to close fast in Week 7.</p>
         </div>
         <div class="card" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.2);">
-          <h3 style="color:#fff;">✅ Afterwards</h3>
-          <p style="color:#cbd5e1;">We <strong style="color:#fff;">are</strong> making it dramatically cheaper to fix — and every future bug like it.</p>
+          <h3 style="color:#fff;">✅ And it compounds</h3>
+          <p style="color:#cbd5e1;">We make that bug — and <strong style="color:#fff;">every future bug like it</strong> — dramatically cheaper to fix from then on.</p>
         </div>
       </div>
       <div class="callout mt" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.2);border-left-color:#60a5fa;color:#e2e8f0;">
-        If you need a <strong style="color:#fff;">direct fix to the white-space bug right now</strong>, this is the wrong direction — let's discuss a different plan first.<br/><br/>
-        If you accept that <strong style="color:#fff;">Round 24, 25, 26 are coming</strong> under the current architecture, and you want to <strong style="color:#fff;">end that pattern</strong> — this is the right direction.
+        If your priority is a <strong style="color:#fff;">guaranteed same-day patch right now</strong>, that's a valid goal — let's choose that plan together, since this proposal optimizes for the durable win.<br/><br/>
+        If you want to <strong style="color:#fff;">end the cycle of Round 24, 25, 26</strong> that the current architecture keeps producing — this is exactly the right direction.
       </div>
       <aside class="notes">
-        Izinkan saya tegaskan sekali lagi dengan sengaja, karena ini yang paling penting sebelum Anda memutuskan. Kita TIDAK memperbaiki bug white-space di sprint ini. Tapi kita MEMBUATNYA jauh lebih murah untuk diperbaiki setelahnya — dan setiap bug serupa di masa depan. Jadi kalau yang Anda butuhkan adalah perbaikan langsung sekarang juga, ini arah yang salah, mari bicara rencana lain. Tapi kalau Anda menerima bahwa Ronde 24, 25, dan 26 pasti datang dengan arsitektur saat ini, dan Anda ingin mengakhiri pola itu — maka inilah arah yang benar.
+        Izinkan saya tegaskan sekali lagi dengan sengaja, karena ini yang paling penting sebelum Anda memutuskan. Kita MENAIKKAN peluang menyelesaikan bug white-space dari sekitar 10 persen menjadi 70 persen — dan disiapkan untuk ditutup cepat di Minggu 7. Dan itu BERLIPAT: bug itu, serta setiap bug serupa di masa depan, jadi jauh lebih murah diperbaiki. Jadi kalau prioritas Anda adalah patch instan hari ini juga, itu tujuan yang sah — mari pilih rencana itu bersama, karena proposal ini dioptimalkan untuk kemenangan jangka panjang. Tapi kalau Anda ingin mengakhiri siklus Ronde 24, 25, dan 26 yang terus dihasilkan arsitektur saat ini — maka inilah arah yang benar.
       </aside>
     </section>
 

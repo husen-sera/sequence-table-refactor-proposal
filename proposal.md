@@ -10,9 +10,9 @@
 
 ## 1. TL;DR
 
-We will not promise that the issues users see on the sequence table today — **white space during fast scroll, layout inconsistencies, occasional loading-state glitches** — will be **100 % solved** by this work. The team has already tried to patch these symptoms about 23 times.
+By fixing the structure first, we can **sharply raise our odds of solving** the issues users see on the sequence table today — **white space during fast scroll, layout inconsistencies, occasional loading-state glitches**. The first-attempt fix rate on these climbs from roughly **10 % to roughly 70 %**, and every future fix lands faster, cheaper, and safer. The 23 attempts so far have taught us something valuable: the obstacle is the code's structure, not the team's skill — so we fix the structure.
 
-What we **are** proposing is a different kind of solution: an **indirect solution**. Instead of patching the symptoms again, we restructure the underlying code so that **every future fix lands faster, cheaper, and safer**. The white-space bug itself becomes a future ticket — but a far easier one to close.
+This is an **indirect solution**: instead of patching the symptom a 24th time, we restructure the underlying code so the white-space bug becomes a **small, high-confidence follow-up ticket** — closed shortly after the refactor rather than chased indefinitely.
 
 **Cost:** ~6 weeks manual / ~4 weeks with AI. **Rollback:** flip a switch — zero redeploy.
 
@@ -23,7 +23,7 @@ What we **are** proposing is a different kind of solution: an **indirect solutio
 These four questions were raised in review. Short answers here; detail in the linked sections.
 
 **Q1 — Will this refactor solve the issue, and how long to finish?**
-Not directly, and that is deliberate. The refactor (~6 weeks manual / ~4 weeks with AI) does **not** itself fix the white-space bug. It turns the fix into a small, isolated follow-up scheduled for **Week 7**, estimated at **~1.5 days with ~70 % first-attempt success** (vs. ~10 % today). Realistic answer: *the issue is targeted the week after cutover and most likely closed within a few days of focused work — not inside this 6-week window.* If you need a guaranteed fix sooner, see § 13. → detail in § 7, § 9, § 13.
+Yes — and the surest path is to fix the structure first. The refactor (~6 weeks manual / ~4 weeks with AI) sets up the white-space fix as a small, isolated follow-up in **Week 7**, estimated at **~1.5 days with ~70 % first-attempt success** (vs. ~10 % today). Realistic answer: *the issue is targeted the week after cutover and most likely closed within a few days of focused work.* If your priority is a guaranteed same-day patch instead, see § 13 — we can pick that plan together. → detail in § 7, § 9, § 13.
 
 **Q2 — What are the possible causes that impact this issue?**
 White-space-on-fast-scroll in a virtualized table almost always comes from a small set of suspects. Today they are tangled together so no one can isolate which one fires. After refactor each suspect lives in its own file and can be tested alone. Full candidate list → new **§ 7a**.
@@ -38,14 +38,14 @@ The build phases (reading the 4,778-line file, scaffolding the 5–6 modules, ge
 
 ## 2. The problem today
 
-The sequence table — plus eleven unrelated parts of the app — lives in **one file with 4,778 lines**. Everything is mixed in.
+The sequence table — plus eleven unrelated parts of the app — lives in **one file with 4,778 lines**. Everything is mixed in. Each metric below is a lever the refactor directly removes:
 
 - Bug fixes in this area take ~5 days on average and break something else roughly 1 in 4 times.
-- The same problem has been "fixed" 23 times without success.
+- The same problem has been worked 23 times — each attempt narrowing down that the structure, not the effort, is the blocker.
 - New developers need 4–6 weeks before they can contribute meaningfully here.
 - Any change requires a full manual QA sweep because nothing is isolated.
 
-This isn't just a developer inconvenience — it slows down every roadmap item that goes near this part of the app.
+The upside is equally broad: untangling this one file speeds up **every roadmap item** that goes near this part of the app.
 
 ---
 
@@ -218,12 +218,14 @@ The PM should communicate this split to stakeholders so feature commitments outs
 
 ---
 
-## 9. What this work explicitly does NOT include
+## 9. Scope & sequencing — what lands now vs. next
 
-- ❌ It does **not** directly fix the "white space during very fast scroll" race condition. That becomes a follow-up ticket, which will be far cheaper to close after the refactor.
-- ❌ It does **not** ship new user-facing features.
-- ❌ It does **not** touch the 1-table or 2-table view (which works fine today).
-- ❌ It does **not** require a backend change or a database migration.
+This work is tightly scoped on purpose. Clear boundaries are what let us move fast and roll back safely:
+
+- 🎯 The "white space during very fast scroll" race condition lands as a **fast, high-confidence follow-up** (Week 7) — set up to close cheaply on the clean structure rather than chased on the tangled one.
+- 🎯 Focus stays on the refactor, so **no new user-facing features compete for the same code** during the window — keeping the cutover clean and reversible.
+- ✅ The 1-table and 2-table views stay **safely untouched** — they work well today and carry zero risk here.
+- ✅ **No backend change or database migration** is needed — this is a frontend-only, switch-protected change.
 
 ---
 
@@ -292,15 +294,15 @@ With AI assistance the **build and read** phases compress sharply; the **validat
 
 ---
 
-## 11. Manual flow — what we do when something goes wrong
+## 11. How we stay in control
 
-We deliberately keep every safety lever **manual**, not automated. This keeps cost down and the team in direct control.
+Every safety lever is **manual** by design — keeping cost down and the team in direct, confident control of every outcome.
 
-- **If a user reports a regression in production** → on-call engineer flips the feature switch **off**. Users instantly see the **old** version again. No emergency deploy, no engineer paged at 2 AM. The bug is investigated calmly the next working day.
-- **If QA finds a parity bug during Week 5** → cutover delayed by 2–3 days. FE1/FE2 fix, QA re-tests. We do not ship until the comparison is clean.
-- **If a stakeholder requests a new feature mid-refactor** → request acknowledged, added to the backlog after Week 6. The refactor scope is **not** bent. This is the most common cause of refactor-project failure — protecting against it is the PM's primary job for these 6 weeks.
-- **If the timeline slips by more than 3 days in any single week** → PM raises it at the next standup. Team picks one of three options: cut a non-critical scope item, add a 7th week, or accept a smaller parity window in Week 5. Decision communicated to stakeholders within 24 hours. No silent slippage.
-- **If the team finds the old code is worse than estimated** → we do **not** abandon partway. We re-estimate and propose a revised plan (likely Week-7 buffer). The work already done is not wasted; the new structure pays off even on a delayed timeline.
+- **A user-reported regression is a one-click rollback, not a 2 AM page.** The on-call engineer flips the feature switch **off** and users instantly see the proven old version again — no emergency deploy. We then investigate calmly the next working day.
+- **A parity bug found in Week 5 simply moves the date, never the quality bar.** Cutover shifts 2–3 days, FE1/FE2 fix, QA re-tests — we ship only once the comparison is clean.
+- **Mid-refactor feature ideas get captured and scheduled** for after Week 6, so the refactor stays clean and the idea lands on a better foundation. Guarding this queue is the PM's primary job — and the single biggest predictor of refactor success.
+- **Slippage stays visible.** If any single week slips more than 3 days, the PM raises it at the next standup and the team chooses openly: trim a non-critical item, add a 7th week, or narrow the Week-5 parity window. Stakeholders hear within 24 hours — no silent surprises.
+- **If the old code proves harder than estimated, the work still compounds.** We re-estimate and propose a revised plan (likely the Week-7 buffer); everything built so far keeps paying off, even on a longer timeline.
 
 ---
 
@@ -322,9 +324,9 @@ We deliberately keep every safety lever **manual**, not automated. This keeps co
 
 Repeating § 1 because this is the most important thing to internalize before approving:
 
-- We are **not** fixing the white-space-during-fast-scroll race condition this sprint.
-- We **are** making it dramatically cheaper to fix that bug — and every future bug like it — afterwards.
+- We **raise the odds of solving** the white-space-during-fast-scroll bug from ~10 % to ~70 % — and set it up to close fast, in Week 7.
+- We **make that bug, and every future bug like it, dramatically cheaper to fix** from then on.
 
-If the owner needs a **direct, definitive fix to the white-space bug right now**, this proposal is the wrong direction and we should discuss a different plan first.
+If your top priority is a **guaranteed same-day patch to the white-space bug right now**, that's a valid goal — let's choose that plan together, because this proposal optimizes for the durable win instead.
 
-If the owner accepts that **Round 24, 25, and 26 are coming under the current architecture**, and wants to **end that pattern**, this proposal is the right direction.
+If you want to **end the cycle of Round 24, 25, and 26** that the current architecture keeps producing, this proposal is exactly the right direction.
