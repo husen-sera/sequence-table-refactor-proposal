@@ -166,11 +166,50 @@
     footer { max-width: var(--maxw); margin: 0 auto; padding: 2rem 1.25rem 3rem; color: var(--muted); font-size: 0.85rem; text-align: center; }
     footer a { color: var(--brand); }
 
-    @media (max-width: 640px) {
-      .hero h1 { font-size: 1.9rem; }
-      .stats { grid-template-columns: 1fr; }
-      .cards.two { grid-template-columns: 1fr; }
+    /* Tablet */
+    @media (max-width: 768px) {
+      :root { --maxw: 100%; }
+      .hero { padding: 2.75rem 1.25rem 2.5rem; }
+      .hero h1 { font-size: 2.1rem; }
+      .hero .sub { font-size: 1.05rem; }
+      h2 { font-size: 1.45rem; }
+      .lead { font-size: 1.08rem; }
+      .final { padding: 1.75rem 1.5rem; }
+    }
+
+    /* Phone */
+    @media (max-width: 560px) {
       body { font-size: 16px; }
+      .topbar .brand { font-size: 0.88rem; }
+      .topbar-inner .meta-date { display: none; }
+      .hero { padding: 2.25rem 1.1rem 2rem; }
+      .hero h1 { font-size: 1.75rem; }
+      .hero .sub { font-size: 1rem; }
+      .hero-meta { gap: 0.35rem 1rem; font-size: 0.78rem; }
+      section { padding: 2rem 0; }
+      h2 { font-size: 1.3rem; }
+      h2 .kick { font-size: 0.68rem; }
+      .lead { font-size: 1.02rem; }
+      .stats { grid-template-columns: 1fr; gap: 0.75rem; }
+      .stat { display: flex; align-items: baseline; justify-content: center; gap: 0.6rem; text-align: center; padding: 0.9rem 1rem; }
+      .stat .n { font-size: 1.5rem; }
+      .stat .l { margin-top: 0; font-size: 0.82rem; text-align: left; }
+      .cards.two { grid-template-columns: 1fr; }
+      .callout { padding: 0.9rem 1rem; font-size: 0.95rem; }
+      table { font-size: 0.82rem; }
+      th, td { padding: 0.55rem 0.65rem; }
+      .tl-item { grid-template-columns: 56px 1fr; gap: 0.75rem; }
+      .final { padding: 1.5rem 1.1rem; border-radius: 14px; }
+      .final h2 { font-size: 1.4rem; }
+    }
+
+    /* Tables stay swipeable on phones — hint the affordance */
+    @media (max-width: 560px) {
+      .table-wrap { position: relative; -webkit-overflow-scrolling: touch; }
+      .table-wrap::after {
+        content: "›"; position: absolute; top: 0.35rem; right: 0.4rem;
+        color: var(--brand); font-weight: 800; font-size: 1rem; opacity: 0.5; pointer-events: none;
+      }
     }
   </style>
 </head>
@@ -179,7 +218,7 @@
   <div class="topbar">
     <div class="topbar-inner">
       <div class="brand">📐 Sequence Table <span>Refactor</span></div>
-      <span style="font-size:0.8rem;color:var(--muted);font-weight:600;">Proposal for review · 2026-06-08</span>
+      <span class="meta-date" style="font-size:0.8rem;color:var(--muted);font-weight:600;">Proposal for review · 2026-06-08</span>
     </div>
   </div>
 
