@@ -1,332 +1,232 @@
-# 📐 Proposal: Sequence Table Refactor — An Indirect Solution
+# 📐 Proposal: Stabilize & Speed Up the Sequence Table — A One-Time Investment
 
-> **Status:** Draft — for discussion
-> **Audience:** Product Owner / Business stakeholder
+> **Status:** Draft — for approval
+> **Audience:** Business Owner / Product Executive / Engineering Manager
 > **Created:** 2026-06-08
-> **Type:** Engineering investment — refactor, not feature
-> **Target window:** ~6 weeks manual **/ ~4 weeks AI-assisted** (see § 10a)
+> **Type:** Risk-reduction & delivery-reliability investment
+> **Investment window:** ~6 weeks (manual) / ~4 weeks (AI-assisted)
+> **Customer-facing risk:** Low — protected by instant one-click rollback
+
+> *All time and percentage figures in this document are **estimates and projections** drawn from our issue-tracking history. They are planning numbers, not guarantees.*
 
 ---
 
-## 1. TL;DR
+## 1. Executive Summary *(30-second read)*
 
-By fixing the structure first, we can **sharply raise our odds of solving** the issues users see on the sequence table today — **white space during fast scroll, layout inconsistencies, occasional loading-state glitches**. The first-attempt fix rate on these climbs from roughly **10 % to roughly 70 %**, and every future fix lands faster, cheaper, and safer. The 23 attempts so far have taught us something valuable: the obstacle is the code's structure, not the team's skill — so we fix the structure.
+**The problem.** One specific area of our product — the sequence table — is expensive to maintain and unpredictable to change. A recurring customer-visible glitch (blank/white space during fast scrolling) has resisted **an estimated 23 fix attempts**. Each attempt costs roughly a week of engineering time and has roughly a **1-in-4 chance of breaking something else.**
 
-This is an **indirect solution**: instead of patching the symptom a 24th time, we restructure the underlying code so the white-space bug becomes a **small, high-confidence follow-up ticket** — closed shortly after the refactor rather than chased indefinitely.
+**Why now.** Every month we delay, we spend more money re-investigating the same problem, we slow down unrelated features that pass through this area, and we deepen our reliance on the few engineers who understand it. The cost is compounding.
 
-**Cost:** ~6 weeks manual / ~4 weeks with AI. **Rollback:** flip a switch — zero redeploy.
+**What happens if we do nothing.** The fix-and-break cycle continues ("Round 24, 25, 26…"), maintenance costs keep rising, feature delivery in and around this area stays slow, and the risk of a customer-visible regression remains elevated.
 
----
+**Expected business benefit.** A one-time investment to restructure this area is **projected** to raise our first-time fix success from roughly **10% to roughly 70%**, cut the cost of future changes substantially, shorten new-developer onboarding here from **4–6 weeks to 1–2 weeks**, and reduce the risk of recurring production issues. Based on our history, the investment is **anticipated to pay for itself within about three months** of normal work.
 
-## ❓ Reviewer's four questions — direct answers
+**Rollout risk & mitigation.** Low. The new version is built **alongside** the existing one and switched on only when proven equivalent. If anything looks wrong, we revert instantly with a single switch — **no emergency deployment, no customer downtime.** No backend, billing, or database changes are involved.
 
-These four questions were raised in review. Short answers here; detail in the linked sections.
-
-**Q1 — Will this refactor solve the issue, and how long to finish?**
-Yes — and the surest path is to fix the structure first. The refactor (~6 weeks manual / ~4 weeks with AI) sets up the white-space fix as a small, isolated follow-up in **Week 7**, estimated at **~1.5 days with ~70 % first-attempt success** (vs. ~10 % today). Realistic answer: *the issue is targeted the week after cutover and most likely closed within a few days of focused work.* If your priority is a guaranteed same-day patch instead, see § 13 — we can pick that plan together. → detail in § 7, § 9, § 13.
-
-**Q2 — What are the possible causes that impact this issue?**
-White-space-on-fast-scroll in a virtualized table almost always comes from a small set of suspects. Today they are tangled together so no one can isolate which one fires. After refactor each suspect lives in its own file and can be tested alone. Full candidate list → new **§ 7a**.
-
-**Q3 — Can the refactor and normal development run in parallel?**
-Partially. **Yes** for anything outside the sequence-table view (~70 % frontend throughput continues, ~100 % backend). **No** for new work *inside* the view — that is queued to Week 7 to avoid expensive rework. Full breakdown → § 8.
-
-**Q4 — I use AI. How much time does that cut?**
-The build phases (reading the 4,778-line file, scaffolding the 5–6 modules, generating tests, building the parity-diff harness) compress a lot with AI. The validation phases (QA parity sweep, 2-day production soak, stakeholder demos) are **calendar-bound and do not compress**. Net: **~6 weeks → ~4 weeks**. AI-assisted timeline → new **§ 10a**.
+**The decision in one line:** *Continue paying a recurring, compounding cost with low odds of resolution — or make a bounded, low-risk, one-time investment that is expected to reduce risk and increase delivery speed for years.*
 
 ---
 
-## 2. The problem today
+## 2. Business Justification
 
-The sequence table — plus eleven unrelated parts of the app — lives in **one file with 4,778 lines**. Everything is mixed in. Each metric below is a lever the refactor directly removes:
+Today, this part of the product carries a set of business costs that are easy to overlook because they are spread across many small events rather than one large bill:
 
-- Bug fixes in this area take ~5 days on average and break something else roughly 1 in 4 times.
-- The same problem has been worked 23 times — each attempt narrowing down that the structure, not the effort, is the blocker.
-- New developers need 4–6 weeks before they can contribute meaningfully here.
-- Any change requires a full manual QA sweep because nothing is isolated.
+| Business cost | What it looks like today | Why it matters to the business |
+|---|---|---|
+| **High maintenance cost** | A single bug here takes an estimated ~5 days to fix | Engineering hours spent maintaining, not building |
+| **Slower feature delivery** | Anything touching this area moves slowly and cautiously | The roadmap stalls whenever it passes through here |
+| **Recurring production issues** | The same defect has returned across ~23 attempts | Repeated customer-visible glitches erode trust |
+| **Higher regression risk** | ~1 in 4 fixes breaks something else | Each change can create the *next* incident |
+| **Long onboarding** | New developers need 4–6 weeks before they're productive here | Slow ramp-up, lost hiring leverage |
+| **Key-person dependency** | Only a few engineers can safely touch this area | A business-continuity risk if they're unavailable |
 
-The upside is equally broad: untangling this one file speeds up **every roadmap item** that goes near this part of the app.
+This proposal is **not** about code aesthetics. It is about **reducing operational risk, improving delivery predictability, and lowering the ongoing cost** of one of the more fragile areas of the product.
 
 ---
 
-## 3. What we propose — refactor
+## 3. Cost of Inaction
 
-**Refactor** means rewriting code **without changing what the user sees**, in a way that makes the code easier for the next developer to understand and modify.
+> **The core question: what is the business cost of *not* making this investment?**
 
-We split the same 4,778 lines into **5–6 small files**, each focused on one clear job:
+If we continue with the current approach, we should expect:
 
-- **Layout** — column widths, padding, alignment (the place where "white space" complaints get fixed by design)
+- **Continued bug-fix cycles without permanent resolution.** The defect has survived ~23 attempts; there is no evidence the 24th behaves differently. We are, in effect, **renting a fix instead of buying one.**
+- **More engineering time spent re-investigating the same area.** Each cycle is an estimated ~5 days. By our tracking, roughly **115 working days have already been consumed** this way — and the meter keeps running.
+- **Delayed feature development.** Every cycle spent here is capacity *not* spent shipping customer-facing value (see § 4).
+- **Growing maintenance cost over time.** As this area accumulates more patches, it becomes harder — not easier — to change, so each future fix tends to cost *more* than the last.
+- **Increased risk of future regressions.** With a ~1-in-4 break rate, continued patching keeps the probability of a new customer-visible incident elevated.
+- **Slower response to customer issues.** When a customer reports a problem here, our current best case is a multi-day investigation with low odds of a clean fix.
+
+**Plain summary:** doing nothing is *not* the zero-cost option. It is the **higher-cost option, paid in instalments**, with the bill growing over time.
+
+---
+
+## 4. Opportunity Cost
+
+Every week spent re-investigating the same recurring issue is a week **not** spent delivering new customer value.
+
+- **Features delayed.** Engineering capacity tied up in repeat investigations is capacity unavailable for roadmap work.
+- **Roadmap impact.** Because this area is slow and risky, initiatives that pass through it are quoted higher and scheduled later — or quietly avoided.
+- **Capacity consumed by recurring investigations.** The estimated ~115 days already spent here represent **roughly half a year of one engineer's time** that produced no durable resolution.
+- **Reduced ability to innovate.** Teams that spend their time firefighting the same area have less room to experiment, improve the product, and respond to market opportunities.
+
+The opportunity cost is the **invisible line item**: we don't see the features we *didn't* ship because the capacity was absorbed here.
+
+---
+
+## 5. Team Scalability *(why this matters for business continuity)*
+
+A core benefit of this investment is that it makes the team **more scalable and less fragile** — which directly protects business continuity.
+
+| Today | After the investment (projected) |
+|---|---|
+| New developers need **4–6 weeks** to safely contribute here | **1–2 weeks** — work is organized into small, understandable pieces |
+| Knowledge is concentrated in a few engineers | Knowledge is **distributed**, because each piece is small and self-contained |
+| The business depends on specific individuals to touch this area | **Reduced key-person dependency** — more engineers can work here safely |
+| New features in this area are slow and risky | **Faster future feature development** on a stable foundation |
+| Maintenance is expensive and nerve-wracking | **Easier, lower-risk maintenance** |
+
+**Why the business should care:** reducing dependence on individual engineers lowers the risk that a departure, an illness, or a competing priority stalls an important part of the product. It also improves **hiring leverage** — new engineers become productive sooner, so each hire delivers value faster.
+
+---
+
+## 6. Return on Investment
+
+> *Figures below are **estimates and projections** for planning, not guarantees.*
+
+**The narrative, in plain terms:**
+
+| | **Current State** | **Future State (projected)** |
+|---|---|---|
+| Diagnosing an issue | Repeated, multi-day investigations | **Faster issue isolation** |
+| Building a change | Slow, cautious, high follow-up cost | **Faster development** |
+| Ongoing upkeep | High maintenance effort | **Lower maintenance overhead** |
+| Stability | Elevated regression risk | **Reduced operational risk** |
+| First-time fix success | ~10% | **~70% (anticipated)** |
+
+**The simple ROI math (estimated):**
+
+- We have **already spent an estimated ~115 days** patching this area without durable success.
+- This investment is **~30 working days** (≈6 weeks; faster with AI assistance).
+- On those figures, the investment would have **paid for itself nearly four times over** within the time we've already spent — and it is **anticipated to recover its cost within roughly three months** of normal work going forward.
+
+**An honest framing for the decision-maker:**
+- *If* we genuinely believed the **next** patch attempt had a high chance of permanently resolving the issue, this investment would be unnecessary — we should just patch.
+- *But* the pattern of ~23 prior attempts strongly suggests the next patch is **no more likely to succeed than the last.** That is precisely why a structural investment — not another patch — is the lower-risk, higher-return path.
+
+---
+
+## 7. Risk & Mitigation
+
+This is fundamentally a **risk-reduction** initiative — but we also manage the (low) risk of the work itself carefully. The headline: **customers are protected throughout.**
+
+| Risk | Likelihood / impact | How we mitigate it |
+|---|---|---|
+| **A customer notices a difference after rollout** | Low | The new version ships **behind a switch**, validated **side-by-side** against the current one before anyone sees it |
+| **A problem reaches production** | Low | **Instant one-click rollback** to the proven version — no emergency deployment, no downtime |
+| **The work takes longer than planned** | Medium | A 7th-week buffer is **pre-approved**; any slippage is reported within 24 hours — **no silent delays** |
+| **Scope expands mid-flight** | Medium | Strict "match today's behavior only" mandate; new ideas are scheduled for after rollout |
+| **Hidden complexity surfaces** | Medium | A dedicated first-week investigation surfaces surprises **before** estimates are finalized |
+| **Increased dependency on one engineer** | Reduced | The work is shared across the team and **lowers** key-person dependency by design |
+
+**Why delivery confidence is high:** there are **no backend, billing, or database changes**, the change is reversible at any moment, and the team sees a working demonstration at the end of each key week (see § 8).
+
+---
+
+## 8. What You Will See — Milestones & Confidence Checkpoints
+
+You do not have to take the plan on faith. Each key week ends in a visible, reviewable result:
+
+| By end of | Milestone | What you'll see |
+|---|---|---|
+| **Week 1** | Investigation complete | A findings report; no surprises hidden |
+| **Week 2** | Core area rebuilt (hidden behind a switch) | A side-by-side demo: today's version vs. the improved one |
+| **Week 4** | Feature-complete (still hidden) | A walkthrough confirming every behavior is preserved |
+| **Week 5** | Equivalence proven | A sign-off that the two versions behave identically |
+| **Week 6** | Live in production | A stability dashboard + a short retrospective |
+
+**Bottom line:** this investment does **not** freeze the team. It focuses on **one area** for a few weeks while the rest of the roadmap continues at a reasonable pace, and it is **reversible at every step.**
+
+---
+
+## 9. The Recommendation
+
+We recommend approving this **one-time, bounded, low-risk investment** now.
+
+- It is **expected** to convert a recurring, compounding cost into a **stable, predictable** part of the product.
+- It is **projected** to increase delivery speed, reduce operational risk, and shorten onboarding.
+- It is **anticipated** to pay for itself within roughly three months — and to keep returning value for as long as we operate this product.
+
+If your immediate priority is instead a **guaranteed same-day patch** to the visible glitch, that is a legitimate choice and we can plan for it separately — but it would not address the underlying, compounding cost. **This proposal is the path that ends the cycle.**
+
+---
+
+---
+
+# Appendix — Technical Reference *(for the engineering team)*
+
+> The sections below support the business case above with implementation detail. **Business stakeholders do not need to read further** — the decision rests entirely on §§ 1–9.
+
+## A1. What "restructuring" means here
+
+The functionality lives in a **single 4,778-line file** that also contains eleven unrelated parts of the app. "Restructuring" (refactoring) means reorganizing that code **without changing what the user sees**, splitting it into **5–6 small, single-purpose files**:
+
+- **Layout** — column widths, padding, alignment (where the "white space" is fixed by design)
 - **Scrolling** — how the long list moves and remembers its place
-- **Loading** — when to show or hide the loading overlay
+- **Loading** — when to show/hide the loading overlay
 - **Cards** — how each card displays inside a cell
-- **Grouping & rarities** — expand / collapse, rarity badges
+- **Grouping & rarities** — expand/collapse, rarity badges
 - **Sticky elements** — row numbers, back-to-top buttons
 
-Everything is built **beside** the old version, behind a switch. When the new version is ready, we flip the switch. If anything breaks, we flip it back — instantly, no emergency deploy.
+The new version is built beside the old one behind a feature switch; cutover and rollback are both a single toggle.
 
----
+## A2. Suspected causes of the white-space issue *(hypotheses, to confirm in Week 1)*
 
-## 4. Why refactor — three concrete payoffs
+These are **candidate causes, not confirmed findings.** They share one file today and interfere with each other, which is why they cannot currently be isolated.
 
-**1. The code becomes organized, not gigantic.**
-A new developer can understand one small file (~300 lines) in about 30 minutes. Today, the same understanding takes ~12 hours of reading the giant file.
-
-**2. Finding the cause of bugs becomes faster.**
-A "white space" report goes straight to the Layout file. Today, the developer has to guess among five possible causes scattered across the giant file. We expect the first-attempt fix rate to rise from roughly **10 %** (which is why we are at Round 23) to roughly **70 %**.
-
-**3. Adding new features and debugging becomes easier.**
-- New feature: change one file, leave the others untouched. No more "I changed one thing and three others broke."
-- Debugging: each file has its own small tests. When a test fails, we know what broke before the user does.
-
----
-
-## 5. What this means for the business
-
-The refactor is invisible the day after release. The benefit shows up three months later, when the team has done normal bug-fix and feature work in this area several times:
-
-| Today | After refactor |
-|---|---|
-| Bug fix takes ~5 days; breaks something else ~1 in 4 times | ~1.5 days; breaks something else ~1 in 20 times |
-| New feature: ~2 weeks of work + ~1 week of follow-up bug fixes | ~1 week of work + ~2 days of follow-up |
-| New developer needs 4–6 weeks before contributing meaningfully | 1–2 weeks |
-| QA on any change: full manual sweep, ~1 day | Targeted check on the affected file, ~2 hours |
-
-These savings **compound**. Within ~3 months of normal work, the team has saved more time than this refactor cost.
-
----
-
-## 6. Features touched by the refactor
-
-The refactor touches every part of the sequence-table view. Owners should know what features the team needs to test — and what's temporarily at risk during the cutover.
-
-### What IS touched (all need parity testing in Week 5)
-
-| Feature | What it does |
-|---|---|
-| Vertical scrolling | The long list of rows the user flicks through |
-| Horizontal scrolling | When there are many columns side-by-side |
-| Text view (カード名) | Shows card numbers and names |
-| Image view (画像表示) | Shows card images |
-| View toggle (text ↔ image) | Preserves scroll position across the switch |
-| Cylinder switch (左/右) | Preserves scroll position per cylinder |
-| Loading overlay | The "loading" state shown while data is fetched and images decode |
-| Hidden columns | Columns marked "hidden" that show masked data |
-| Grouping | Expand / collapse for grouped cards |
-| Rarity badges & popovers | Tap to see rarity info per cell |
-| Sticky row numbers | The left column (1, 2, 3, …) that stays in place during horizontal scroll |
-| **1枚目へ / 100枚目へ** buttons | Jump to top or bottom of the table |
-| Pattern-match auto-scroll | Jumps to the row containing the search match |
-| "Detail" button (modal) | Opens the card-detail modal from a cell |
-
-### What is NOT touched
-
-- The 1-table and 2-table views (used when fewer cards match)
-- Search input, login, settings, gacha, history, and every other screen
-- Backend / API / database
-- The Go BE cutover work currently in progress
-
-### Risk per feature
-
-Any single feature above could regress during Weeks 5–6. The side-by-side comparison (Week 5) and the feature switch (Week 6) are the two safety nets. The switch lets us roll back instantly if anything slips through to production.
-
----
-
-## 7. Can we find the root cause WITHOUT refactoring?
-
-The owner is right to ask. Honest answer:
-
-**We have already tried, 23 times.** Each attempt cost roughly 5 days. Each one failed for the same reason: the code is too tangled to isolate cause-from-effect — fixing one path triggers a different symptom elsewhere.
-
-### The math
-
-| Approach | Cost per attempt | First-attempt success | Risk of new regressions |
+| # | Candidate cause | Why it appears as white space | Owning module after split |
 |---|---|---|---|
-| Continue patching in place | ~5 days | ~10 % (we are at Round 23) | **High** — every patch can break something else |
-| Refactor first, then fix | 6 weeks once + ~1.5 days per future fix | ~70 % | **Low** — each module is isolated and tested |
+| 1 | Virtualization window lag | Visible window advances faster than rows mount → blank gap | Scrolling |
+| 2 | Wrong / estimated row heights | Spacer math drifts → gaps between rows | Layout |
+| 3 | Async image decode | Area paints before images decode → cells flash empty | Cards + Loading |
+| 4 | Overlay hides too early | Overlay lifts on data arrival, not render-complete | Loading |
+| 5 | Scroll-restore jump | Position restored before layout settles → momentary blank | Scrolling |
+| 6 | Sticky / offset miscalculation | Geometry off by a few px under fast scroll | Sticky elements |
 
-The team has already burned roughly **115 days** (23 attempts × 5 days) trying to find the root cause without refactoring. The 6-week refactor (~30 working days) would have paid for itself nearly **four times over** in that same period.
+The likeliest culprits (#1, #2, #5) all sit in *scrolling + layout*. Isolating them is what makes this attempt structurally different from the previous 23.
 
-### The honest framing
+## A3. Features in scope (require equivalence testing before cutover)
 
-- If we believe the **next** attempt has a 90 % chance of succeeding, refactoring is over-engineering. We should patch.
-- But 22 prior failures suggest the opposite — the **next** patch is no more likely than the last one. **The structure of the code is the obstacle, not the developer's skill.**
+Vertical & horizontal scrolling · text view (カード名) · image view (画像表示) · view toggle · cylinder switch (左/右) · loading overlay · hidden columns · grouping · rarity badges & popovers · sticky row numbers · 1枚目へ / 100枚目へ jump buttons · pattern-match auto-scroll · "Detail" modal.
 
-### The indirect benefit
+**Out of scope (zero risk):** the 1-table & 2-table views · search, login, settings, gacha, history · backend / API / database · the in-progress Go BE cutover.
 
-Even if the refactor itself does not directly find the root cause, the resulting modular structure makes the root cause **possible to find**. Today, no one on the team can confidently point to which of the 5 tangled subsystems is responsible. After refactor, the search space shrinks from 4,778 lines to ~300.
+## A4. Parallel work during the investment
 
----
-
-## 7a. Suspected causes of the white-space issue
-
-These are **hypotheses to confirm in the Week-1 spike**, not confirmed findings. The point of listing them is twofold: (1) show the issue has a *bounded* set of likely causes, and (2) show why the refactor matters — today these suspects share one file and fire into each other, so we cannot test any of them in isolation. After refactor, each suspect lives in the module named in the right-hand column and can be reproduced and fixed on its own.
-
-| # | Candidate cause | Why it shows up as white space | Owning module after refactor |
-|---|---|---|---|
-| 1 | **Virtualization window lag** | On fast scroll the visible window advances faster than rows mount → a blank gap until rendering catches up | Scrolling |
-| 2 | **Wrong / estimated row heights** | If row height is estimated and the real height differs, the spacer math is off and gaps open between rows | Layout |
-| 3 | **Async image decode** | Cells reserve space but images decode asynchronously; if the area paints before decode, cells flash empty | Cards + Loading |
-| 4 | **Overlay hides too early** | The loading overlay lifts on *data arrival* instead of *render complete*, exposing not-yet-painted rows | Loading |
-| 5 | **Scroll-restore jump** | Restoring scroll position after a view toggle or cylinder switch lands before layout settles → momentary blank | Scrolling |
-| 6 | **Sticky / offset miscalculation** | Sticky row numbers or header offsets throw the content-region geometry off by a few px under fast scroll | Sticky elements |
-
-**Why this is the strongest argument for refactoring first:** the most likely culprit (#1, #2, #5) all live in *scrolling + layout* — and today that logic is interleaved with loading, cards, grouping and sticky behaviour in the same 4,778-line file. A fix for #1 routinely triggers a regression that looks like #4. Isolating them is precisely what makes Round 24 different from Rounds 1–23.
-
----
-
-## 8. Can refactor and new development happen in parallel?
-
-**Partially.** Here is the breakdown.
-
-### ✅ Can run in parallel — no conflict
-
-| Type of work | Why it's safe |
-|---|---|
-| Backend / Go BE cutover | Different codebase entirely |
-| Search input, login, gacha, history, settings | Different files; refactor does not touch them |
-| The non-virtualized 1-table / 2-table view | Explicitly out of refactor scope |
-| Bug fixes outside the sequence-table view | No code overlap |
-
-Expect roughly **70 % of normal feature throughput** in unrelated areas to continue uninterrupted.
-
-### ⚠️ Should be paused — will conflict
-
-| Type of work | Why it conflicts |
-|---|---|
-| Any new feature touching the sequence-table view | Refactor changes the file structure; features written against the old structure need expensive rework after Week 6 |
-| Any "Round 24" patch attempt at the white-space bug | Will be discarded by the refactor; effort wasted |
-| Loading-overlay or scroll-restoration changes in this view | Directly inside refactor scope |
-
-These should be **queued for after Week 6**. The wait is short, and the result lands on the clean structure instead of compounding the problem.
-
-### 🟡 Case-by-case — coordinate weekly
-
-| Type of work | Decision rule |
-|---|---|
-| Changes to the MobX store the table reads | Additive changes (new fields, new methods) are safe in parallel. Changes to existing fields the table reads → coordinate. |
-| Shared utility helpers (e.g. `isCardCellHidden`) | Refactor extracts these to a shared file. Concurrent edits → merge weekly. |
-| Visual / Tailwind theming | Safe if global; coordinate if they touch sequence-table-specific classes. |
-
-### Capacity headline
-
-The team is **not** at 0 % throughput during the refactor. It is at:
-- ~0 % on sequence-table work (intentional, being refactored)
-- ~70 % on other frontend work (FE1 dedicated to refactor, FE2 split; ~1 FTE remaining for unrelated work)
-- ~100 % on backend / Go BE (separate team, no coupling)
-
-The PM should communicate this split to stakeholders so feature commitments outside the refactor area stay honest.
-
----
-
-## 9. Scope & sequencing — what lands now vs. next
-
-This work is tightly scoped on purpose. Clear boundaries are what let us move fast and roll back safely:
-
-- 🎯 The "white space during very fast scroll" race condition lands as a **fast, high-confidence follow-up** (Week 7) — set up to close cheaply on the clean structure rather than chased on the tangled one.
-- 🎯 Focus stays on the refactor, so **no new user-facing features compete for the same code** during the window — keeping the cutover clean and reversible.
-- ✅ The 1-table and 2-table views stay **safely untouched** — they work well today and carry zero risk here.
-- ✅ **No backend change or database migration** is needed — this is a frontend-only, switch-protected change.
-
----
-
-## 10. Timeline — 6 weeks, refactor track + parallel-dev track
-
-**Assumed team:** 1 PM, 2 Frontend engineers (FE1 senior, FE2), 1 QA, 1 UX. None loaded above ~70 % on this work.
-
-### Two tracks running side-by-side
-
-| Week | Refactor track (FE1 + FE2 + QA + UX) | Parallel-dev track (remaining capacity) |
+| Can run in parallel (~70% FE throughput continues) | Should pause (queued to after rollout) | Coordinate weekly |
 |---|---|---|
-| **1** | Foundation: scope confirmation, baseline screenshots, set up new code structure beside old, 1-day spike to surface hidden surprises | Continue in-flight work outside sequence table. Pause new sequence-table tickets. |
-| **2** | Build the **Layout** file — white-space + padding fixed by design. New version visible only to developers. | Go BE cutover continues. Unrelated bug fixes continue. |
-| **3** | Build scrolling, view modes (text/image), hidden columns, grouping. | Same as Week 2. New features that touch the sequence table stay queued. |
-| **4** | Add rarity popovers, back-to-top buttons, scroll memory, pattern-match auto-scroll. Internal demo: "old vs. new, side by side". | Same. PM begins planning the post-refactor backlog so Week 7 starts productive. |
-| **5** | Side-by-side comparison: same data, both versions, confirm identical behavior. QA sweeps every scenario from § 6. | **Reduced** — QA capacity drops because they're running the parity sweep. Unrelated QA work delayed 2–3 days. |
-| **6** | Cutover. 2-day production soak. Delete old code. Retrospective. | Parallel work resumes full capacity by mid-week. |
-| **7+** | — | Sequence-table backlog (queued from Weeks 1–6) reopens. **First ticket on the refactored code is the white-space race-condition itself.** |
+| Backend / Go BE cutover (separate codebase) | New features touching the sequence-table view | Changes to the shared data store the table reads |
+| Search, login, gacha, history, settings | Any further "Round 24" patch attempt | Shared utility helpers |
+| The 1-table / 2-table view | Loading/scroll changes inside this view | Global theming |
+| Bug fixes outside this view | | |
 
-### Throughput estimate over the 6 weeks
+Capacity during the window (estimated): ~0% on sequence-table feature work (intentional), **~70%** on other frontend work, **~100%** on backend.
 
-| Area | Capacity vs. normal |
+## A5. Timeline detail
+
+**Manual (~6 weeks):** W1 foundation + investigation · W2 Layout · W3 scrolling/view modes/grouping · W4 remaining features + internal demo · W5 equivalence sweep · W6 cutover + 2-day soak + remove old code.
+
+**AI-assisted (~4 weeks):** AI compresses the **read/build** phases (file audit ~3 days → ~1 day; module scaffolding ~2.5 weeks → ~1.5 weeks). The **validation** phases — equivalence testing and the production soak — are calendar-bound and **do not** compress.
+
+> ⚠️ AI speeds up *writing* the change, not *reviewing* it. The ~4-week estimate assumes the **same testing rigor** as the 6-week plan, not a reduced one.
+
+## A6. Engineering-side risks
+
+| Risk | Mitigation |
 |---|---|
-| Sequence-table feature work | 0 % (intentional — being refactored) |
-| Other frontend features | ~70 % |
-| Backend / Go BE | ~100 % |
-| QA on unrelated work | ~60 % (drops in Weeks 5–6 for parity sweep) |
-| UX | ~80 % (light: Week 1 layout spec, Week 6 sign-off) |
-
-### Milestones the owner sees
-
-| End of week | Milestone | Demo |
-|---|---|---|
-| W1 | Foundation set, surprises catalogued | Spike report + baseline screenshots |
-| W2 | New table renders cleanly (behind a switch) | Side-by-side demo: old vs. clean layout |
-| W4 | Feature-complete behind the switch | Walkthrough of every scenario on the new version |
-| W5 | Parity proven | QA sign-off report |
-| W6 | In production | Dashboard + retrospective |
-
-**Bottom line for the owner:** the refactor does not freeze the team. It freezes **one area of the product for 6 weeks** while everything else continues at a reduced but reasonable pace.
-
----
-
-## 10a. AI-assisted timeline — ~4 weeks instead of ~6
-
-With AI assistance the **build and read** phases compress sharply; the **validation** phases do not, because parity testing, the production soak, and stakeholder demos are bound by calendar time and human judgement, not typing speed.
-
-| Week | Refactor track **with AI** | Where AI helps |
-|---|---|---|
-| **1** | Foundation + spike. AI maps the 4,778-line file, drafts module boundaries, and ranks the § 7a candidate causes faster than manual reading. | Audit/read: ~3 days → ~1 day |
-| **2** | Build Layout + Scrolling + Loading. AI scaffolds each module and generates unit tests; engineers review and correct. | Build weeks 2–3 fold into ~1.5 |
-| **3** | Build Cards + Grouping + Sticky; wire the feature switch. AI generates the old-vs-new parity-diff harness. | Test + harness authoring |
-| **4** | Parity sweep → cutover → 2-day soak. **Human-bound: AI does not shorten QA sign-off or the soak.** | — (intentionally unchanged) |
-
-### What AI does and does not change
-
-| Phase | Manual | With AI | Why |
-|---|---|---|---|
-| Read / audit the giant file | ~3 days | ~1 day | AI summarises and cross-references quickly |
-| Scaffold 5–6 modules + tests | ~2.5 weeks | ~1.5 weeks | AI drafts; engineer reviews and corrects |
-| Parity sweep (QA) | ~1 week | ~1 week | Calendar-bound — no change |
-| Production soak | 2 days | 2 days | Calendar-bound — no change |
-| **Total** | **~6 weeks** | **~4 weeks** | Savings are entirely in build/read |
-
-> ⚠️ **Honest caveat:** AI speeds up *writing* the refactor — it does **not** lower the bar for reviewing it. AI-generated module splits need *more* careful human review, not less, because a subtle behaviour change is exactly what a parity sweep must catch. The 4-week number assumes the same QA rigour as the 6-week plan, not a thinner one.
-
----
-
-## 11. How we stay in control
-
-Every safety lever is **manual** by design — keeping cost down and the team in direct, confident control of every outcome.
-
-- **A user-reported regression is a one-click rollback, not a 2 AM page.** The on-call engineer flips the feature switch **off** and users instantly see the proven old version again — no emergency deploy. We then investigate calmly the next working day.
-- **A parity bug found in Week 5 simply moves the date, never the quality bar.** Cutover shifts 2–3 days, FE1/FE2 fix, QA re-tests — we ship only once the comparison is clean.
-- **Mid-refactor feature ideas get captured and scheduled** for after Week 6, so the refactor stays clean and the idea lands on a better foundation. Guarding this queue is the PM's primary job — and the single biggest predictor of refactor success.
-- **Slippage stays visible.** If any single week slips more than 3 days, the PM raises it at the next standup and the team chooses openly: trim a non-critical item, add a 7th week, or narrow the Week-5 parity window. Stakeholders hear within 24 hours — no silent surprises.
-- **If the old code proves harder than estimated, the work still compounds.** We re-estimate and propose a revised plan (likely the Week-7 buffer); everything built so far keeps paying off, even on a longer timeline.
-
----
-
-## 12. Risks
-
-| Risk | What could go wrong | How we handle it |
-|---|---|---|
-| Hidden complexity | The 4,778-line file has logic we didn't see in the audit | Week-1 spike specifically to surface surprises before estimating hardens |
-| Time slippage | Refactor takes longer than 6 weeks | Week 7 buffer pre-approved; slippage communicated immediately |
-| Scope creep | Stakeholder asks for new features mid-refactor | Strict "parity only" mandate; new ideas go to the backlog |
-| Engineer fatigue | Reading the original code is exhausting | Pair programming; rotate hard pieces between FE1 and FE2 |
-| Parallel-track conflict | Someone ships a sequence-table change anyway | PM gate-keeps the queue in § 8; conflicting tickets are rejected, not silently merged |
-| User confusion | Layout looks subtly different after refactor | UX prepares a one-paragraph release note; the visible changes are small and net-positive |
-| Old code never deleted | Two versions live in parallel forever → double maintenance | Deletion in Week 6 is a gate, not optional |
-
----
-
-## 13. Say it twice on purpose
-
-Repeating § 1 because this is the most important thing to internalize before approving:
-
-- We **raise the odds of solving** the white-space-during-fast-scroll bug from ~10 % to ~70 % — and set it up to close fast, in Week 7.
-- We **make that bug, and every future bug like it, dramatically cheaper to fix** from then on.
-
-If your top priority is a **guaranteed same-day patch to the white-space bug right now**, that's a valid goal — let's choose that plan together, because this proposal optimizes for the durable win instead.
-
-If you want to **end the cycle of Round 24, 25, and 26** that the current architecture keeps producing, this proposal is exactly the right direction.
+| Hidden complexity in the original file | Week-1 investigation before estimates harden |
+| Time slippage | Pre-approved Week-7 buffer; 24-hour slippage reporting |
+| Scope creep | Strict "match today's behavior only" mandate |
+| Engineer fatigue on dense code | Pair programming; rotate the hard pieces |
+| Someone ships a conflicting change | The work queue is gate-kept, not silently merged |
+| Old code never removed | Removal is a required gate at cutover, not optional |

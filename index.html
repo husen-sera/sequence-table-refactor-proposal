@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sequence Table Refactor — Proposal for Review</title>
-  <meta name="description" content="An indirect solution: fix the structure first, raise the odds of solving the white-space bug from ~10% to ~70%, and make every future fix faster, cheaper, and safer." />
+  <title>Sequence Table — Investment Proposal for Approval</title>
+  <meta name="description" content="A one-time, low-risk investment that turns a recurring, compounding maintenance cost into a stable, predictable part of the product — projected to raise first-time fix success from ~10% to ~70% and pay for itself within ~3 months." />
 
   <style>
     :root {
@@ -19,6 +19,7 @@
       --warn: #d97706;
       --warn-bg: #fffbeb;
       --bad: #dc2626;
+      --bad-bg: #fef2f2;
       --bg: #ffffff;
       --bg-soft: #f8fafc;
       --maxw: 820px;
@@ -36,7 +37,6 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Sticky top bar */
     .topbar {
       position: sticky; top: 0; z-index: 50;
       background: rgba(255,255,255,0.85);
@@ -56,10 +56,7 @@
       white-space: nowrap; transition: background .15s;
     }
     .btn:hover { background: var(--brand-dark); }
-    .btn.ghost { background: transparent; color: var(--brand); border: 1px solid #dbeafe; }
-    .btn.ghost:hover { background: #eff6ff; }
 
-    /* Hero */
     .hero {
       background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #3b82f6 100%);
       color: #fff; padding: 3.5rem 1.25rem 3rem;
@@ -77,7 +74,6 @@
     .hero-meta { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; font-size: 0.82rem; color: #bfdbfe; }
     .hero-meta span { white-space: nowrap; }
 
-    /* Layout */
     main { max-width: var(--maxw); margin: 0 auto; padding: 0 1.25rem; }
     section { padding: 2.5rem 0; border-bottom: 1px solid var(--line); }
     section:last-of-type { border-bottom: none; }
@@ -92,51 +88,35 @@
     a { color: var(--brand); }
 
     .lead { font-size: 1.18rem; color: var(--ink); line-height: 1.6; }
+    .disclaimer { font-size: 0.82rem; color: var(--muted); font-style: italic; margin-top: 0.5rem; }
 
     ul { margin: 0.7rem 0; padding-left: 1.3rem; }
-    li { margin: 0.4rem 0; }
+    li { margin: 0.5rem 0; }
 
-    /* Highlight callout */
     .callout {
       background: var(--bg-soft); border: 1px solid var(--line); border-left: 5px solid var(--brand);
       border-radius: 12px; padding: 1rem 1.25rem; margin: 1.25rem 0; font-size: 0.98rem;
     }
     .callout.good { border-left-color: var(--good); background: var(--good-bg); }
     .callout.warn { border-left-color: var(--warn); background: var(--warn-bg); }
+    .callout.bad { border-left-color: var(--bad); background: var(--bad-bg); }
+    .callout.decision { background: linear-gradient(135deg,#eff6ff,#f8fafc); border-left-color: var(--brand-dark); font-size: 1.05rem; }
 
-    /* Stat row */
     .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.5rem 0; }
     .stat { background: var(--bg-soft); border: 1px solid var(--line); border-radius: 12px; padding: 1.1rem; text-align: center; }
-    .stat .n { font-size: 1.9rem; font-weight: 800; color: var(--brand); line-height: 1; }
+    .stat .n { font-size: 1.7rem; font-weight: 800; color: var(--brand); line-height: 1.05; }
     .stat .l { font-size: 0.78rem; color: var(--muted); margin-top: 0.4rem; line-height: 1.35; }
 
-    /* Cards */
     .cards { display: grid; gap: 1rem; margin: 1.25rem 0; }
     .cards.two { grid-template-columns: 1fr 1fr; }
     .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 1.1rem 1.25rem; }
     .card.good { border-left: 5px solid var(--good); }
     .card.brand { border-left: 5px solid var(--brand); }
     .card.warn { border-left: 5px solid var(--warn); }
+    .card.bad { border-left: 5px solid var(--bad); }
     .card h4 { margin: 0 0 0.4rem; font-size: 1rem; color: var(--ink); font-weight: 700; }
     .card p { margin: 0; font-size: 0.92rem; color: var(--body); }
 
-    /* Q&A */
-    .qa { margin: 1.25rem 0; }
-    .qa details {
-      border: 1px solid var(--line); border-radius: 12px; padding: 0 1.1rem; margin: 0.6rem 0;
-      background: #fff; transition: border-color .15s;
-    }
-    .qa details[open] { border-color: #bfdbfe; }
-    .qa summary {
-      cursor: pointer; font-weight: 700; color: var(--ink); padding: 0.95rem 0; list-style: none;
-      display: flex; justify-content: space-between; align-items: center; gap: 1rem; font-size: 1rem;
-    }
-    .qa summary::-webkit-details-marker { display: none; }
-    .qa summary::after { content: "+"; color: var(--brand); font-weight: 800; font-size: 1.3rem; }
-    .qa details[open] summary::after { content: "–"; }
-    .qa details > p { margin: 0 0 1rem; font-size: 0.96rem; }
-
-    /* Tables */
     .table-wrap { overflow-x: auto; margin: 1.25rem 0; }
     table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
     th { background: var(--bg-soft); text-align: left; font-weight: 700; color: var(--ink); border-bottom: 2px solid var(--line); padding: 0.7rem 0.85rem; }
@@ -147,26 +127,28 @@
     .pill.warn { background: #fef3c7; color: #92400e; }
     .pill.bad { background: #fee2e2; color: #991b1b; }
 
-    /* Timeline */
     .timeline { margin: 1.25rem 0; }
-    .tl-item { display: grid; grid-template-columns: 64px 1fr; gap: 1rem; padding: 0.9rem 0; border-bottom: 1px solid var(--line); }
+    .tl-item { display: grid; grid-template-columns: 80px 1fr; gap: 1rem; padding: 0.9rem 0; border-bottom: 1px solid var(--line); }
     .tl-item:last-child { border-bottom: none; }
     .tl-week { font-weight: 800; color: var(--brand); font-size: 0.95rem; }
     .tl-item .body strong { display: block; color: var(--ink); margin-bottom: 0.15rem; }
     .tl-item .body span { font-size: 0.92rem; color: var(--body); }
     .tl-item.highlight { background: var(--good-bg); border-radius: 10px; padding-left: 0.75rem; padding-right: 0.75rem; }
 
-    /* Final CTA */
+    details.appendix { border: 1px solid var(--line); border-radius: 12px; padding: 0 1.1rem; margin: 1.25rem 0; background: var(--bg-soft); }
+    details.appendix summary { cursor: pointer; font-weight: 700; color: var(--ink); padding: 1rem 0; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+    details.appendix summary::-webkit-details-marker { display: none; }
+    details.appendix summary::after { content: "+"; color: var(--brand); font-weight: 800; font-size: 1.3rem; }
+    details.appendix[open] summary::after { content: "–"; }
+    details.appendix .inner { padding-bottom: 1rem; font-size: 0.9rem; }
+
     .final { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: #fff; border-radius: 18px; padding: 2.25rem; margin: 2.5rem 0 1rem; text-align: center; }
     .final h2 { color: #fff; }
     .final p { color: #dbeafe; }
-    .final .btn { background: #fff; color: var(--brand-dark); margin-top: 1rem; }
-    .final .btn:hover { background: #eff6ff; }
 
     footer { max-width: var(--maxw); margin: 0 auto; padding: 2rem 1.25rem 3rem; color: var(--muted); font-size: 0.85rem; text-align: center; }
     footer a { color: var(--brand); }
 
-    /* Tablet */
     @media (max-width: 768px) {
       :root { --maxw: 100%; }
       .hero { padding: 2.75rem 1.25rem 2.5rem; }
@@ -176,14 +158,12 @@
       .lead { font-size: 1.08rem; }
       .final { padding: 1.75rem 1.5rem; }
     }
-
-    /* Phone */
     @media (max-width: 560px) {
       body { font-size: 16px; }
       .topbar .brand { font-size: 0.88rem; }
       .topbar-inner .meta-date { display: none; }
       .hero { padding: 2.25rem 1.1rem 2rem; }
-      .hero h1 { font-size: 1.75rem; }
+      .hero h1 { font-size: 1.7rem; }
       .hero .sub { font-size: 1rem; }
       .hero-meta { gap: 0.35rem 1rem; font-size: 0.78rem; }
       section { padding: 2rem 0; }
@@ -192,19 +172,15 @@
       .lead { font-size: 1.02rem; }
       .stats { grid-template-columns: 1fr; gap: 0.75rem; }
       .stat { display: flex; align-items: baseline; justify-content: center; gap: 0.6rem; text-align: center; padding: 0.9rem 1rem; }
-      .stat .n { font-size: 1.5rem; }
+      .stat .n { font-size: 1.35rem; }
       .stat .l { margin-top: 0; font-size: 0.82rem; text-align: left; }
       .cards.two { grid-template-columns: 1fr; }
       .callout { padding: 0.9rem 1rem; font-size: 0.95rem; }
       table { font-size: 0.82rem; }
       th, td { padding: 0.55rem 0.65rem; }
-      .tl-item { grid-template-columns: 56px 1fr; gap: 0.75rem; }
+      .tl-item { grid-template-columns: 64px 1fr; gap: 0.75rem; }
       .final { padding: 1.5rem 1.1rem; border-radius: 14px; }
       .final h2 { font-size: 1.4rem; }
-    }
-
-    /* Tables stay swipeable on phones — hint the affordance */
-    @media (max-width: 560px) {
       .table-wrap { position: relative; -webkit-overflow-scrolling: touch; }
       .table-wrap::after {
         content: "›"; position: absolute; top: 0.35rem; right: 0.4rem;
@@ -217,225 +193,203 @@
 
   <div class="topbar">
     <div class="topbar-inner">
-      <div class="brand">📐 Sequence Table <span>Refactor</span></div>
-      <span class="meta-date" style="font-size:0.8rem;color:var(--muted);font-weight:600;">Proposal for review · 2026-06-08</span>
+      <div class="brand">📐 Sequence Table <span>Investment Proposal</span></div>
+      <span class="meta-date" style="font-size:0.8rem;color:var(--muted);font-weight:600;">For approval · 2026-06-08</span>
     </div>
   </div>
 
   <header class="hero">
     <div class="hero-inner">
-      <span class="eyebrow">📐 Engineering Proposal · For your review</span>
-      <h1>Fix the structure, solve the bug.</h1>
-      <p class="sub">An <em>indirect solution</em> — by fixing the underlying code first, we raise our odds of solving the white-space issue and make every future fix faster, cheaper, and safer.</p>
+      <span class="eyebrow">📐 Investment Proposal · For approval</span>
+      <h1>Stabilize and speed up the sequence table.</h1>
+      <p class="sub">A one-time, low-risk investment that turns a <em>recurring, compounding cost</em> into a stable, predictable part of the product — and frees the team to ship more.</p>
       <div class="hero-meta">
         <span>📅 Created 2026-06-08</span>
-        <span>⏱ ~6 weeks manual · ~4 weeks with AI</span>
-        <span>🔄 Rollback by a single switch</span>
+        <span>⏱ ~6 weeks manual · ~4 weeks AI-assisted</span>
+        <span>🛡 Low customer risk — instant rollback</span>
       </div>
     </div>
   </header>
 
   <main>
 
-    <!-- SUMMARY -->
+    <!-- EXECUTIVE SUMMARY -->
     <section id="summary">
-      <h2><span class="kick">In one minute</span>The opportunity</h2>
-      <p class="lead">Today, fixing a bug in the sequence table is slow and risky because all the code lives tangled in one giant file. By reorganizing it first, we make the white-space bug — and every bug like it — far more likely to fix on the first try.</p>
+      <h2><span class="kick">Executive summary · 30-second read</span>The decision in one minute</h2>
+      <p class="lead">One area of our product — the sequence table — is expensive to maintain and unpredictable to change. A recurring, customer-visible glitch has resisted an estimated <strong>23 fix attempts</strong>, each costing about a week and carrying a ~1-in-4 chance of breaking something else. This proposal converts that recurring cost into a one-time, reversible investment.</p>
       <div class="stats">
-        <div class="stat"><div class="n">~10% → ~70%</div><div class="l">First-attempt fix rate, after the refactor</div></div>
+        <div class="stat"><div class="n">~10% → ~70%</div><div class="l">Projected first-time fix success</div></div>
         <div class="stat"><div class="n">~4–6 wks</div><div class="l">One-time investment (AI-assisted / manual)</div></div>
-        <div class="stat"><div class="n">1 switch</div><div class="l">Instant rollback — no emergency deploy</div></div>
+        <div class="stat"><div class="n">~3 months</div><div class="l">Anticipated payback period</div></div>
       </div>
-      <div class="callout good">
-        <strong>The honest target:</strong> this work doesn't ship a flashy new feature, and it isn't a same-day patch. What it does is turn a problem we've struggled with <strong>23 times</strong> into a small, high-confidence follow-up — and pay for itself within about three months of normal work.
+      <div class="table-wrap">
+        <table>
+          <tbody>
+            <tr><td style="width:34%"><strong>What problem are we solving?</strong></td><td>A recurring, customer-visible glitch in an area that is slow and risky to change.</td></tr>
+            <tr><td><strong>Why now?</strong></td><td>The cost is compounding — every month of delay means more repeat investigation, slower features, and deeper reliance on a few engineers.</td></tr>
+            <tr><td><strong>What if we do nothing?</strong></td><td>The fix-and-break cycle continues, maintenance cost keeps rising, and regression risk stays elevated.</td></tr>
+            <tr><td><strong>Expected benefit?</strong></td><td>Higher first-time fix success, faster delivery, shorter onboarding, lower operational risk — payback in ~3 months.</td></tr>
+            <tr><td><strong>Rollout risk?</strong></td><td>Low. Built alongside the current version; switched on only once proven equivalent.</td></tr>
+            <tr><td><strong>How is it mitigated?</strong></td><td>Instant one-click rollback, side-by-side validation, no backend/billing/database changes.</td></tr>
+          </tbody>
+        </table>
       </div>
+      <div class="callout decision">
+        <strong>The decision in one line:</strong> continue paying a recurring, compounding cost with low odds of resolution — or make a bounded, low-risk, one-time investment that is expected to reduce risk and increase delivery speed for years.
+      </div>
+      <p class="disclaimer">All time and percentage figures in this document are estimates and projections from our issue-tracking history — planning numbers, not guarantees.</p>
     </section>
 
-    <!-- FOUR QUESTIONS -->
-    <section id="questions">
-      <h2><span class="kick">Straight answers</span>The four questions you're likely asking</h2>
-      <div class="qa">
-        <details open>
-          <summary>Will this actually solve the bug — and how long will it take?</summary>
-          <p><strong>Yes — and the surest path is to fix the structure first.</strong> The refactor (~6 weeks manual, ~4 weeks with AI) sets up the white-space fix as a small, isolated follow-up in Week 7 — about 1.5 days of work with ~70% odds of fixing it on the first attempt, versus ~10% today. If your priority is instead a guaranteed same-day patch, that's a valid goal — we can choose that plan together. This one optimizes for the durable win.</p>
-        </details>
-        <details>
-          <summary>What's actually causing the white-space issue?</summary>
-          <p>It comes down to a <strong>bounded set of six likely suspects</strong> — things like the list rendering lagging behind a fast scroll, or images decoding a beat too late. Today these are tangled together in one file, so no one can isolate which one fires. After the refactor, each suspect lives in its own small file and can be tested — and fixed — on its own. (Full list further down.)</p>
-        </details>
-        <details>
-          <summary>Can other development keep moving while this happens?</summary>
-          <p><strong>Mostly, yes.</strong> Everything outside the sequence-table view keeps going — about 70% of normal frontend output and 100% of backend work continue. The only work we pause is new features <em>inside</em> this specific view, which we queue to Week 7 so they land on the clean foundation instead of needing rework.</p>
-        </details>
-        <details>
-          <summary>We use AI — how much faster does that make it?</summary>
-          <p>AI compresses the <strong>reading and building</strong> phases significantly — roughly <strong>6 weeks down to 4</strong>. The validation phases (quality testing, the production safety period) are bound by the calendar, not typing speed, so they stay the same. Importantly, the 4-week figure assumes the <strong>same testing rigor</strong> as the 6-week plan — AI speeds up writing the code, it doesn't lower the bar for checking it.</p>
-        </details>
+    <!-- BUSINESS JUSTIFICATION -->
+    <section id="justification">
+      <h2><span class="kick">Business justification</span>The hidden costs we pay today</h2>
+      <p>These costs are easy to overlook because they're spread across many small events rather than one large bill:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Business cost</th><th>What it looks like today</th><th>Why it matters</th></tr></thead>
+          <tbody>
+            <tr><td><strong>High maintenance cost</strong></td><td>A single bug here takes ~5 days to fix</td><td>Engineering hours spent maintaining, not building</td></tr>
+            <tr><td><strong>Slower feature delivery</strong></td><td>Anything touching this area moves slowly</td><td>The roadmap stalls whenever it passes through here</td></tr>
+            <tr><td><strong>Recurring incidents</strong></td><td>The same defect returned across ~23 attempts</td><td>Repeated glitches erode customer trust</td></tr>
+            <tr><td><strong>Higher regression risk</strong></td><td>~1 in 4 fixes breaks something else</td><td>Each change can create the next incident</td></tr>
+            <tr><td><strong>Long onboarding</strong></td><td>New developers need 4–6 weeks here</td><td>Slow ramp-up, lost hiring leverage</td></tr>
+            <tr><td><strong>Key-person dependency</strong></td><td>Only a few engineers can safely touch it</td><td>A business-continuity risk</td></tr>
+          </tbody>
+        </table>
       </div>
+      <div class="callout">This proposal is <strong>not</strong> about code aesthetics. It is about <strong>reducing operational risk, improving delivery predictability, and lowering the ongoing cost</strong> of one of the more fragile areas of the product.</div>
     </section>
 
-    <!-- PROBLEM -->
-    <section id="problem">
-      <h2><span class="kick">Where we are today</span>One file, 4,778 lines, everything tangled</h2>
-      <p>The sequence table — plus eleven unrelated parts of the app — all live in a single 4,778-line file. Because everything is mixed together, every change is slow and risky. Each number below is a lever this refactor directly removes:</p>
-      <div class="stats">
-        <div class="stat"><div class="n">~5 days</div><div class="l">Average time to fix one bug here</div></div>
-        <div class="stat"><div class="n">1 in 4</div><div class="l">Fixes that break something else</div></div>
-        <div class="stat"><div class="n">4–6 wks</div><div class="l">Before a new developer can help here</div></div>
-      </div>
-      <p>The same problem has been worked <strong>23 times</strong> — and each attempt has narrowed it down to one conclusion: the obstacle is the structure of the code, not the effort or skill of the team. Untangling this one file speeds up <strong>every roadmap item</strong> that goes near this part of the app.</p>
+    <!-- COST OF INACTION -->
+    <section id="inaction">
+      <h2><span class="kick">Cost of inaction</span>What it costs us to do nothing</h2>
+      <p>If we continue with the current approach, we should expect:</p>
+      <ul>
+        <li><strong>Continued fix cycles without permanent resolution.</strong> The defect has survived ~23 attempts — there's no evidence the 24th behaves differently. We are <em>renting</em> a fix instead of <em>buying</em> one.</li>
+        <li><strong>More engineering time re-investigating the same area.</strong> By our tracking, roughly <strong>115 working days have already been consumed</strong> this way — and the meter keeps running.</li>
+        <li><strong>Delayed feature development</strong> — every cycle spent here is capacity not spent on customer value.</li>
+        <li><strong>Growing maintenance cost over time</strong> — more patches make the area harder to change, so each future fix tends to cost more than the last.</li>
+        <li><strong>Increased regression risk</strong> — at a ~1-in-4 break rate, continued patching keeps a new customer-visible incident probable.</li>
+        <li><strong>Slower response to customer issues</strong> — today's best case is a multi-day investigation with low odds of a clean fix.</li>
+      </ul>
+      <div class="callout bad"><strong>Plain summary:</strong> doing nothing is not the zero-cost option. It is the <strong>higher-cost option, paid in instalments</strong> — with the bill growing over time.</div>
     </section>
 
-    <!-- PROPOSAL -->
-    <section id="proposal">
-      <h2><span class="kick">What we propose</span>Split it into 5–6 small, focused files</h2>
-      <p><strong>Refactoring</strong> means rewriting code <strong>without changing what the user sees</strong> — making it easier for the next person to understand and safely modify. We split the same 4,778 lines so each file does one clear job:</p>
+    <!-- OPPORTUNITY COST -->
+    <section id="opportunity">
+      <h2><span class="kick">Opportunity cost</span>The value we're not shipping</h2>
+      <p>Every week spent re-investigating the same issue is a week <strong>not</strong> spent delivering new customer value.</p>
       <div class="cards two">
-        <div class="card brand"><h4>🧱 Layout</h4><p>Column widths, padding, alignment — where the "white space" gets fixed by design.</p></div>
-        <div class="card brand"><h4>📜 Scrolling</h4><p>How the long list moves and remembers its place.</p></div>
-        <div class="card brand"><h4>⏳ Loading</h4><p>When to show or hide the loading overlay.</p></div>
-        <div class="card brand"><h4>🃏 Cards</h4><p>How each card displays inside a cell.</p></div>
-        <div class="card brand"><h4>🗂 Grouping &amp; rarities</h4><p>Expand / collapse, rarity badges.</p></div>
-        <div class="card brand"><h4>📌 Sticky elements</h4><p>Row numbers, back-to-top buttons.</p></div>
+        <div class="card warn"><h4>📦 Features delayed</h4><p>Capacity tied up in repeat investigations is capacity unavailable for the roadmap.</p></div>
+        <div class="card warn"><h4>🗺 Roadmap impact</h4><p>Because this area is slow and risky, initiatives through it are quoted higher and scheduled later — or quietly avoided.</p></div>
+        <div class="card warn"><h4>⏳ Capacity consumed</h4><p>The ~115 days already spent here ≈ roughly <strong>half a year of one engineer's time</strong> — with no durable resolution.</p></div>
+        <div class="card warn"><h4>💡 Less room to innovate</h4><p>Teams stuck firefighting the same area have less room to experiment and respond to the market.</p></div>
       </div>
-      <div class="callout good">
-        🔄 The new version is built <strong>beside</strong> the old one, behind a switch. When it's ready, we flip the switch. If anything looks off, we flip it back — <strong>instantly, with no emergency deploy</strong>.
-      </div>
+      <div class="callout">The opportunity cost is the <strong>invisible line item</strong>: we don't see the features we <em>didn't</em> ship because the capacity was absorbed here.</div>
     </section>
 
-    <!-- PAYOFF -->
-    <section id="payoff">
-      <h2><span class="kick">Why it's worth it</span>Three concrete payoffs</h2>
-      <div class="cards">
-        <div class="card good"><h4>1 · Organized, not gigantic</h4><p>A developer understands one ~300-line file in about 30 minutes — versus ~12 hours of reading the giant file today.</p></div>
-        <div class="card good"><h4>2 · Faster to find the cause</h4><p>A "white space" report goes straight to the Layout file. First-attempt fix rate rises from roughly 10% to roughly 70%.</p></div>
-        <div class="card good"><h4>3 · Easier to extend &amp; debug</h4><p>Change one file, leave the rest untouched. Each file has its own small tests, so we catch breakage before users do.</p></div>
-      </div>
-      <h3>What it means in practice — three months on</h3>
+    <!-- TEAM SCALABILITY -->
+    <section id="scalability">
+      <h2><span class="kick">Team scalability</span>Reducing fragility & key-person risk</h2>
+      <p>This investment makes the team <strong>more scalable and less fragile</strong> — directly protecting business continuity.</p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Today</th><th>After refactor</th></tr></thead>
+          <thead><tr><th>Today</th><th>After the investment (projected)</th></tr></thead>
           <tbody>
-            <tr><td>Bug fix takes ~5 days; breaks something ~1 in 4</td><td><span class="pill good">~1.5 days</span> · breaks ~1 in 20</td></tr>
-            <tr><td>New feature: ~2 weeks + ~1 week of follow-up fixes</td><td><span class="pill good">~1 week</span> + ~2 days follow-up</td></tr>
-            <tr><td>New developer: 4–6 weeks to contribute</td><td><span class="pill good">1–2 weeks</span></td></tr>
-            <tr><td>Testing any change: full manual sweep, ~1 day</td><td><span class="pill good">~2 hours</span>, targeted to the affected file</td></tr>
+            <tr><td>New developers need <strong>4–6 weeks</strong> to contribute safely</td><td><span class="pill good">1–2 weeks</span> — work is organized into small, clear pieces</td></tr>
+            <tr><td>Knowledge concentrated in a few engineers</td><td><strong>Distributed</strong> — each piece is small and self-contained</td></tr>
+            <tr><td>Business depends on specific individuals here</td><td><strong>Reduced key-person dependency</strong></td></tr>
+            <tr><td>New features are slow and risky</td><td><strong>Faster future development</strong> on a stable base</td></tr>
+            <tr><td>Maintenance is expensive and nerve-wracking</td><td><strong>Easier, lower-risk maintenance</strong></td></tr>
           </tbody>
         </table>
       </div>
-      <div class="callout">💡 These savings <strong>compound</strong>. Within about three months of normal work, the team has saved more time than the refactor cost.</div>
+      <div class="callout good"><strong>Why the business should care:</strong> less dependence on individual engineers lowers the risk that a departure, illness, or competing priority stalls an important part of the product — and improves <strong>hiring leverage</strong>, since new engineers become productive sooner.</div>
     </section>
 
-    <!-- CAUSES -->
-    <section id="causes">
-      <h2><span class="kick">The six suspects</span>What's likely causing the white space</h2>
-      <p>These are <strong>hypotheses to confirm</strong> in the first week — not yet proven. Listing them makes two things clear: the problem has a <em>bounded</em> set of likely causes, and the refactor is what finally lets us test each one in isolation.</p>
+    <!-- ROI -->
+    <section id="roi">
+      <h2><span class="kick">Return on investment</span>Current state vs. future state</h2>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>#</th><th>Likely cause</th><th>Why it looks like white space</th><th>Fixed in</th></tr></thead>
+          <thead><tr><th></th><th>Current state</th><th>Future state (projected)</th></tr></thead>
           <tbody>
-            <tr><td>1</td><td><strong>Rendering lags fast scroll</strong></td><td>The list scrolls faster than rows can appear — a blank gap until it catches up</td><td>Scrolling</td></tr>
-            <tr><td>2</td><td><strong>Wrong row heights</strong></td><td>Estimated heights don't match reality, so gaps open between rows</td><td>Layout</td></tr>
-            <tr><td>3</td><td><strong>Images decode late</strong></td><td>Cells paint before images finish decoding, flashing empty</td><td>Cards + Loading</td></tr>
-            <tr><td>4</td><td><strong>Overlay hides too early</strong></td><td>The loading cover lifts before rows are painted</td><td>Loading</td></tr>
-            <tr><td>5</td><td><strong>Scroll position jump</strong></td><td>Position restores before the layout settles — a brief blank</td><td>Scrolling</td></tr>
-            <tr><td>6</td><td><strong>Sticky offset miscalc</strong></td><td>Row-number column throws the geometry off by a few pixels</td><td>Sticky elements</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="callout warn">⚠️ The likeliest culprits (#1, #2, #5) all live in <strong>scrolling + layout</strong> — today interleaved with everything else. A fix for one routinely triggers a regression that looks like another. Isolating them is exactly what makes this attempt different from the previous 23.</div>
-    </section>
-
-    <!-- WHY NOT JUST PATCH -->
-    <section id="math">
-      <h2><span class="kick">The fair question</span>"Can't we just find the root cause without all this?"</h2>
-      <p>It's the right question to ask. The honest answer: <strong>we've already tried, 23 times.</strong> Each attempt cost about 5 days and failed for the same reason — the code is too tangled to separate cause from effect.</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Approach</th><th>Cost / attempt</th><th>Odds of success</th><th>Regression risk</th></tr></thead>
-          <tbody>
-            <tr><td><strong>Keep patching in place</strong></td><td>~5 days</td><td><span class="pill bad">~10%</span></td><td><span class="pill bad">High</span></td></tr>
-            <tr><td><strong>Refactor first, then fix</strong></td><td>6 wks once + ~1.5 days / fix</td><td><span class="pill good">~70%</span></td><td><span class="pill good">Low</span></td></tr>
+            <tr><td><strong>Diagnosing an issue</strong></td><td>Repeated, multi-day investigations</td><td><span class="pill good">Faster issue isolation</span></td></tr>
+            <tr><td><strong>Building a change</strong></td><td>Slow, cautious, high follow-up cost</td><td><span class="pill good">Faster development</span></td></tr>
+            <tr><td><strong>Ongoing upkeep</strong></td><td>High maintenance effort</td><td><span class="pill good">Lower overhead</span></td></tr>
+            <tr><td><strong>Stability</strong></td><td>Elevated regression risk</td><td><span class="pill good">Reduced operational risk</span></td></tr>
+            <tr><td><strong>First-time fix success</strong></td><td>~10%</td><td><span class="pill good">~70% (anticipated)</span></td></tr>
           </tbody>
         </table>
       </div>
       <div class="stats">
-        <div class="stat"><div class="n">~115 days</div><div class="l">Already spent (23 × 5 days) chasing it the old way</div></div>
-        <div class="stat"><div class="n">~30 days</div><div class="l">The one-time refactor</div></div>
-        <div class="stat"><div class="n">~4×</div><div class="l">It would have paid for itself in that same period</div></div>
+        <div class="stat"><div class="n">~115 days</div><div class="l">Already spent patching, no durable fix</div></div>
+        <div class="stat"><div class="n">~30 days</div><div class="l">The one-time investment</div></div>
+        <div class="stat"><div class="n">~4×</div><div class="l">It would have paid for itself in that span</div></div>
       </div>
-      <p>The point isn't blame — it's that <strong>22 prior failures suggest the structure, not the team, is the obstacle</strong>. Even if the refactor doesn't directly find the root cause, it shrinks the search from 4,778 lines to about 300, making the cause findable for the first time.</p>
+      <div class="callout"><strong>An honest framing:</strong> if we believed the <em>next</em> patch had a high chance of permanently resolving the issue, this investment would be unnecessary. But the pattern of ~23 attempts strongly suggests the next patch is <strong>no more likely than the last</strong> — which is exactly why a structural investment, not another patch, is the lower-risk, higher-return path.</div>
     </section>
 
-    <!-- TIMELINE -->
-    <section id="timeline">
-      <h2><span class="kick">The plan</span>Six weeks, with visible demos along the way</h2>
-      <p>Two tracks run side by side: the refactor itself, and normal development continuing on everything else. You see a real demo at the end of each key week.</p>
+    <!-- RISK & MITIGATION -->
+    <section id="risk">
+      <h2><span class="kick">Risk &amp; mitigation</span>Customers are protected throughout</h2>
+      <p>This is fundamentally a <strong>risk-reduction</strong> initiative — and we manage the low risk of the work itself carefully.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Risk</th><th>Likelihood</th><th>How we mitigate it</th></tr></thead>
+          <tbody>
+            <tr><td>A customer notices a difference after rollout</td><td><span class="pill good">Low</span></td><td>Ships <strong>behind a switch</strong>, validated side-by-side before anyone sees it</td></tr>
+            <tr><td>A problem reaches production</td><td><span class="pill good">Low</span></td><td><strong>Instant one-click rollback</strong> — no emergency deploy, no downtime</td></tr>
+            <tr><td>The work takes longer than planned</td><td><span class="pill warn">Medium</span></td><td>A 7th-week buffer is <strong>pre-approved</strong>; slippage reported within 24 hours</td></tr>
+            <tr><td>Scope expands mid-flight</td><td><span class="pill warn">Medium</span></td><td>Strict "match today's behavior only"; new ideas scheduled for after rollout</td></tr>
+            <tr><td>Hidden complexity surfaces</td><td><span class="pill warn">Medium</span></td><td>A first-week investigation surfaces surprises <strong>before</strong> estimates are finalized</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout good"><strong>Why delivery confidence is high:</strong> no backend, billing, or database changes; reversible at any moment; and a working demonstration at the end of each key week.</div>
+    </section>
+
+    <!-- MILESTONES -->
+    <section id="milestones">
+      <h2><span class="kick">What you will see</span>Confidence checkpoints, not a leap of faith</h2>
+      <p>Each key week ends in a visible, reviewable result:</p>
       <div class="timeline">
-        <div class="tl-item"><div class="tl-week">Week 1</div><div class="body"><strong>Foundation &amp; investigation</strong><span>Set up the new structure beside the old; a focused spike to surface any hidden surprises.</span></div></div>
-        <div class="tl-item"><div class="tl-week">Week 2</div><div class="body"><strong>Layout built</strong><span>White space and padding fixed by design. Demo: old vs. clean layout, side by side.</span></div></div>
-        <div class="tl-item"><div class="tl-week">Week 3</div><div class="body"><strong>Scrolling, view modes, grouping</strong><span>The core interactions rebuilt on the clean structure.</span></div></div>
-        <div class="tl-item"><div class="tl-week">Week 4</div><div class="body"><strong>Feature-complete behind the switch</strong><span>Rarity popovers, jump buttons, scroll memory. Internal walkthrough of every scenario.</span></div></div>
-        <div class="tl-item"><div class="tl-week">Week 5</div><div class="body"><strong>Parity proven</strong><span>Same data, both versions, confirmed identical behavior. Quality sign-off.</span></div></div>
-        <div class="tl-item"><div class="tl-week">Week 6</div><div class="body"><strong>In production</strong><span>Cutover, a 2-day safety soak, old code removed, retrospective.</span></div></div>
-        <div class="tl-item highlight"><div class="tl-week">Week 7+</div><div class="body"><strong>The white-space fix itself</strong><span>The first ticket on the clean code is the bug that started all of this — now a fast, high-confidence fix.</span></div></div>
+        <div class="tl-item"><div class="tl-week">Week 1</div><div class="body"><strong>Investigation complete</strong><span>A findings report — no surprises hidden.</span></div></div>
+        <div class="tl-item"><div class="tl-week">Week 2</div><div class="body"><strong>Core area rebuilt (hidden behind a switch)</strong><span>A side-by-side demo: today's version vs. the improved one.</span></div></div>
+        <div class="tl-item"><div class="tl-week">Week 4</div><div class="body"><strong>Feature-complete, still hidden</strong><span>A walkthrough confirming every behavior is preserved.</span></div></div>
+        <div class="tl-item"><div class="tl-week">Week 5</div><div class="body"><strong>Equivalence proven</strong><span>A sign-off that both versions behave identically.</span></div></div>
+        <div class="tl-item"><div class="tl-week">Week 6</div><div class="body"><strong>Live in production</strong><span>A stability dashboard and a short retrospective.</span></div></div>
+        <div class="tl-item highlight"><div class="tl-week">Week 7+</div><div class="body"><strong>The recurring glitch itself</strong><span>The first task on the stabilized foundation — now a fast, high-confidence fix.</span></div></div>
       </div>
-      <div class="callout">
-        <strong>With AI, this compresses to ~4 weeks</strong> — the reading and building phases shrink, while testing and the production safety period stay the same to keep quality intact.
-      </div>
+      <div class="callout">This investment does <strong>not</strong> freeze the team. It focuses on <strong>one area</strong> for a few weeks while the rest of the roadmap continues at a reasonable pace — and it is reversible at every step.</div>
     </section>
 
-    <!-- CONTROL -->
-    <section id="control">
-      <h2><span class="kick">Staying in control</span>What happens if something slips</h2>
-      <div class="cards two">
-        <div class="card good">
-          <h4>🧯 If a user hits a problem in production</h4>
-          <p>It's a one-click rollback, not a 2 AM emergency. We flip the switch off, users instantly see the proven old version, and we investigate calmly the next working day.</p>
-        </div>
-        <div class="card good">
-          <h4>🧪 If testing finds a mismatch in Week 5</h4>
-          <p>The date moves, never the quality bar. Cutover shifts 2–3 days while we fix and re-test — we ship only once the two versions match.</p>
-        </div>
-        <div class="card brand">
-          <h4>💡 If a new feature request comes mid-way</h4>
-          <p>We capture it and schedule it for after Week 6, so it lands on the better foundation. Protecting this queue is the project manager's main job.</p>
-        </div>
-        <div class="card brand">
-          <h4>📅 If the timeline slips</h4>
-          <p>It stays visible. A pre-approved 7th-week buffer absorbs surprises, and you hear about any change within 24 hours — no silent slippage.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- SCOPE -->
-    <section id="scope">
-      <h2><span class="kick">Scope</span>What's in, and what stays safely out</h2>
-      <div class="cards two">
-        <div class="card good">
-          <h4>✅ Stays safely untouched</h4>
-          <p>The simpler 1-table and 2-table views · search, login, settings, history · the backend, API, and database · the in-progress backend cutover. Zero risk to any of these.</p>
-        </div>
-        <div class="card brand">
-          <h4>🎯 Sequenced as a fast follow-up</h4>
-          <p>The white-space fix lands in Week 7 on the clean structure. No new user-facing features compete for this code during the window — keeping the cutover clean and reversible.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- FINAL -->
+    <!-- RECOMMENDATION -->
     <section id="decision" style="border-bottom:none;">
       <div class="final">
-        <h2>End the cycle of patches.</h2>
-        <p>We raise the odds of solving the white-space bug from ~10% to ~70%, set it up to close fast in Week 7, and make every future fix dramatically cheaper from then on.</p>
-        <p style="font-size:0.92rem;opacity:0.9;">~4–6 weeks · rollback by a single switch · pays for itself within ~3 months.</p>
+        <h2>End the cycle. Buy the fix, don't keep renting it.</h2>
+        <p>A one-time, bounded, low-risk investment — expected to increase delivery speed, reduce operational risk, shorten onboarding, and pay for itself within ~3 months.</p>
+        <p style="font-size:0.92rem;opacity:0.9;">~4–6 weeks · instant rollback · no backend or database change.</p>
       </div>
+      <p style="text-align:center;color:var(--muted);font-size:0.95rem;">
+        If your immediate priority is instead a guaranteed same-day patch to the visible glitch, that's a legitimate choice we can plan separately — but it would not address the underlying, compounding cost. <strong style="color:var(--ink);">This proposal is the path that ends the cycle.</strong>
+      </p>
+
+      <details class="appendix">
+        <summary>Technical reference (for the engineering team)</summary>
+        <div class="inner">
+          <p><strong>What "restructuring" means:</strong> the functionality currently lives in a single 4,778-line file mixed with eleven unrelated parts of the app. We reorganize it — without changing what the user sees — into 5–6 small, single-purpose pieces (Layout, Scrolling, Loading, Cards, Grouping &amp; rarities, Sticky elements), built beside the old version behind a feature switch.</p>
+          <p><strong>Suspected causes (hypotheses, confirmed in Week 1):</strong> virtualization window lag, wrong/estimated row heights, async image decode, overlay hiding too early, scroll-restore jump, sticky/offset miscalculation. They share one file today and interfere with each other, which is why they can't currently be isolated.</p>
+          <p><strong>Parallel work:</strong> backend, search/login/settings, the 1-table/2-table views, and bug fixes elsewhere continue (~70% frontend throughput, ~100% backend). New work inside this view is queued to after rollout.</p>
+          <p><strong>AI acceleration:</strong> AI compresses the read/build phases (~6 wks → ~4 wks); equivalence testing and the production soak are calendar-bound and unchanged. AI speeds up writing the change, not reviewing it — the 4-week figure assumes the same testing rigor.</p>
+        </div>
+      </details>
     </section>
 
   </main>
 
   <footer>
-    Sequence Table Refactor — proposal for review · prepared 2026-06-08
+    Sequence Table — investment proposal for approval · prepared 2026-06-08
   </footer>
 
 </body>
